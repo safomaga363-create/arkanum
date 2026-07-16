@@ -154,7 +154,7 @@ export default function LeaderboardPage() {
                         {rank <= 3 ? (
                           <Medal
                             className="h-5 w-5 mx-auto"
-                            style={{ color: rankColors[rank] }}
+                            style={{ color: rank === 1 ? "#ffd700" : rank === 2 ? "#c0c0c0" : "#cd7f32" }}
                           />
                         ) : (
                           <span className="text-sm font-bold text-muted-foreground">
