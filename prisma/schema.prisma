@@ -1,0 +1,352 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================
+// USER & AUTH
+// ===========================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String    @map("password_hash")
+  displayName   String?   @map("display_name")
+  avatar        String?
+  role          UserRole  @default(USER)
+  isPremium     Boolean   @default(false) @map("is_premium")
+  premiumExpiry DateTime? @map("premium_expiry")
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  rank          UserRank  @default(BRONZE)
+  balance       Float     @default(0) // earnings from contests
+  totalEarned   Float     @default(0) @map("total_earned")
+  totalSpent    Float     @default(0) @map("total_spent")
+  country       String?
+  bio           String?
+  website       String?
+  isBanned      Boolean   @default(false) @map("is_banned")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  contestEntries      ContestEntry[]
+  challengeProgress   ChallengeProgress[]
+  payments            Payment[]
+  withdrawals         Withdrawal[]
+  notifications       Notification[]
+  premiumTransactions PremiumTransaction[]
+  adminLogs           AdminLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserRank {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  MASTER
+  LEGENDARY
+}
+
+// ===========================
+// LEARNING PATHS & CHALLENGES
+// ===========================
+
+model LearningPath {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String
+  icon        String?
+  color       String?  @default("#00f0ff")
+  difficulty  Difficulty
+  sortOrder   Int      @default(0) @map("sort_order")
+  isPublished Boolean  @default(true) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  challenges Challenge[]
+
+  @@map("learning_paths")
+}
+
+model Challenge {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  description   String
+  content       String?     // markdown content for challenge details
+  hints         String?     // JSON array of hints
+  difficulty    Difficulty
+  category      String
+  points        Int         @default(100)
+  xpReward      Int         @default(50) @map("xp_reward")
+  timeLimitMin  Int?        @map("time_limit_min") // minutes
+  maxAttempts   Int?        @map("max_attempts")
+  isPublished   Boolean     @default(true) @map("is_published")
+  isFree        Boolean     @default(true) @map("is_free")
+  entryFee      Float       @default(0) @map("entry_fee") // for paid challenges
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  learningPathId String?   @map("learning_path_id")
+  learningPath   LearningPath? @relation(fields: [learningPathId], references: [id])
+  progress       ChallengeProgress[]
+  contestChallenges ContestChallenge[]
+
+  @@map("challenges")
+}
+
+model ChallengeProgress {
+  id          String           @id @default(cuid())
+  userId      String           @map("user_id")
+  challengeId String           @map("challenge_id")
+  status      ProgressStatus   @default(IN_PROGRESS)
+  score       Int              @default(0)
+  attempts    Int              @default(0)
+  solvedAt    DateTime?        @map("solved_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])
+  @@map("challenge_progress")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+  LEGENDARY
+}
+
+enum ProgressStatus {
+  IN_PROGRESS
+  SOLVED
+  FAILED
+  SKIPPED
+}
+
+// ===========================
+// CONTESTS (Main monetization)
+// ===========================
+
+model Contest {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  description   String
+  rules         String?       // contest rules
+  prizePool     Float         @default(0) @map("prize_pool")
+  entryFee      Float         @default(0) @map("entry_fee")
+  commission    Float         @default(20) // percentage taken by platform
+  currency      String        @default("USD")
+  difficulty    Difficulty
+  maxParticipants Int?        @map("max_participants")
+  currentParticipants Int     @default(0) @map("current_participants")
+  status        ContestStatus @default(DRAFT)
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  duration      Int           @default(120) // minutes
+  prizes        String?       // JSON: [{place: 1, amount: X, label: "..."}]
+  isFeatured    Boolean       @default(false) @map("is_featured")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  entries       ContestEntry[]
+  challenges    ContestChallenge[]
+  payments      Payment[]
+
+  @@map("contests")
+}
+
+model ContestEntry {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  contestId String   @map("contest_id")
+  score     Int      @default(0)
+  rank      Int?
+  prize     Float    @default(0)
+  paidAt    DateTime @default(now()) @map("paid_at")
+  status    EntryStatus @default(PENDING)
+
+  user    User    @relation(fields: [userId], references: [id])
+  contest Contest @relation(fields: [contestId], references: [id])
+
+  @@unique([userId, contestId])
+  @@map("contest_entries")
+}
+
+model ContestChallenge {
+  id          String   @id @default(cuid())
+  contestId   String   @map("contest_id")
+  challengeId String   @map("challenge_id")
+  sortOrder   Int      @default(0) @map("sort_order")
+  points      Int      @default(100)
+
+  contest   Contest   @relation(fields: [contestId], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([contestId, challengeId])
+  @@map("contest_challenges")
+}
+
+enum ContestStatus {
+  DRAFT
+  UPCOMING
+  ACTIVE
+  FINISHED
+  CANCELLED
+}
+
+enum EntryStatus {
+  PENDING
+  PAID
+  ACTIVE
+  COMPLETED
+  REFUNDED
+}
+
+// ===========================
+// PAYMENTS & WITHDRAWALS
+// ===========================
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String        @map("user_id")
+  amount          Float
+  currency        String        @default("USDT")
+  network         String        @default("TRC20")
+  type            PaymentType
+  status          PaymentStatus @default(PENDING)
+  txHash          String?       @map("tx_hash")
+  externalId      String?       @map("external_id") // ID from payment gateway
+  gatewayResponse String?       @map("gateway_response") // JSON
+  description     String?
+  contestId       String?       @map("contest_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id])
+  contest Contest? @relation(fields: [contestId], references: [id])
+
+  @@map("payments")
+}
+
+model Withdrawal {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  amount    Float
+  fee       Float            @default(0)
+  netAmount Float            @map("net_amount")
+  currency  String           @default("USDT")
+  network   String           @default("TRC20")
+  wallet    String           // destination wallet address
+  status    WithdrawalStatus @default(PENDING)
+  txHash    String?          @map("tx_hash")
+  notes     String?
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("withdrawals")
+}
+
+model PremiumTransaction {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  amount    Float
+  currency  String   @default("USDT")
+  period    String   // e.g., "1_month", "3_months", "1_year"
+  txHash    String?  @map("tx_hash")
+  status    PaymentStatus @default(PENDING)
+  startsAt  DateTime @map("starts_at")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("premium_transactions")
+}
+
+enum PaymentType {
+  CONTEST_ENTRY
+  PREMIUM_SUBSCRIPTION
+  CHALLENGE_ENTRY
+  DEPOSIT
+  WITHDRAWAL
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+// ===========================
+// NOTIFICATIONS & ADMIN
+// ===========================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  action    String
+  details   String?  // JSON
+  targetId  String?  @map("target_id")
+  targetType String? @map("target_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("admin_logs")
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  CONTEST
+  PAYMENT
+  SYSTEM
+}
