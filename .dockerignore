@@ -1,7 +1,0 @@
-node_modules
-.next
-.git
-docker/data
-.env
-.env.local
-*.md
