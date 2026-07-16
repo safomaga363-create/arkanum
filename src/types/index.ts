@@ -47,7 +47,24 @@ export interface LearningPath {
   icon: string | null;
   color: string;
   difficulty: Difficulty;
-  challengeCount?: number;
+  lessonCount?: number;
+}
+
+export type LessonType = "TEXT" | "VIDEO" | "INTERACTIVE" | "QUIZ" | "PRACTICAL";
+
+export interface Lesson {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string | null;
+  contentType: LessonType;
+  difficulty: Difficulty;
+  durationMin: number;
+  points: number;
+  xpReward: number;
+  sortOrder: number;
+  learningPathId: string;
 }
 
 export interface Challenge {

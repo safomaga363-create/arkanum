@@ -3,15 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-const learningPathSchema = z.object({
+const lessonSchema = z.object({
   title: z.string().min(3),
   description: z.string().min(10),
-  icon: z.string().optional(),
-  color: z.string().default("#00f0ff"),
+  content: z.string().optional(),
+  contentType: z.enum(["TEXT", "VIDEO", "INTERACTIVE", "QUIZ", "PRACTICAL"]).default("TEXT"),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT", "LEGENDARY"]),
+  durationMin: z.number().min(1).default(15),
+  points: z.number().min(1).default(100),
+  xpReward: z.number().min(1).default(50),
+  learningPathId: z.string(),
 });
 
-// List all learning paths
+// List lessons for a learning path
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
@@ -19,21 +23,29 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const paths = await prisma.learningPath.findMany({
+    const { searchParams } = new URL(req.url);
+    const learningPathId = searchParams.get("learningPathId");
+
+    const where: any = {};
+    if (learningPathId) where.learningPathId = learningPathId;
+
+    const lessons = await prisma.lesson.findMany({
+      where,
       orderBy: { sortOrder: "asc" },
       include: {
-        _count: { select: { lessons: true } },
+        learningPath: { select: { title: true, slug: true } },
+        _count: { select: { progress: true } },
       },
     });
 
-    return NextResponse.json({ success: true, data: paths });
+    return NextResponse.json({ success: true, data: lessons });
   } catch (error) {
-    console.error("Get learning paths error:", error);
+    console.error("Get lessons error:", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
-// Create a learning path
+// Create a lesson
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -42,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const data = learningPathSchema.parse(body);
+    const data = lessonSchema.parse(body);
 
     const slug = data.title
       .toLowerCase()
@@ -50,36 +62,46 @@ export async function POST(req: NextRequest) {
       .replace(/[\s_-]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
-    const existing = await prisma.learningPath.findUnique({ where: { slug } });
+    // Check for duplicate slug within the same learning path
+    const existing = await prisma.lesson.findFirst({
+      where: { learningPathId: data.learningPathId, slug },
+    });
     if (existing) {
-      return NextResponse.json({ success: false, error: "A learning path with similar title exists" }, { status: 409 });
+      return NextResponse.json({ success: false, error: "A lesson with similar title exists in this path" }, { status: 409 });
     }
 
-    const maxOrder = await prisma.learningPath.aggregate({ _max: { sortOrder: true } });
+    const maxOrder = await prisma.lesson.aggregate({
+      where: { learningPathId: data.learningPathId },
+      _max: { sortOrder: true },
+    });
 
-    const path = await prisma.learningPath.create({
+    const lesson = await prisma.lesson.create({
       data: {
         title: data.title,
         slug,
         description: data.description,
-        icon: data.icon,
-        color: data.color,
+        content: data.content,
+        contentType: data.contentType,
         difficulty: data.difficulty,
+        durationMin: data.durationMin,
+        points: data.points,
+        xpReward: data.xpReward,
         sortOrder: (maxOrder._max.sortOrder || 0) + 1,
+        learningPathId: data.learningPathId,
       },
     });
 
-    return NextResponse.json({ success: true, data: path }, { status: 201 });
+    return NextResponse.json({ success: true, data: lesson }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, error: error.errors[0].message }, { status: 400 });
     }
-    console.error("Create learning path error:", error);
+    console.error("Create lesson error:", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 
-// Delete a learning path
+// Delete a lesson
 export async function DELETE(req: NextRequest) {
   try {
     const session = await auth();
@@ -94,11 +116,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: "ID required" }, { status: 400 });
     }
 
-    await prisma.learningPath.delete({ where: { id } });
+    await prisma.lesson.delete({ where: { id } });
 
-    return NextResponse.json({ success: true, message: "Learning path deleted" });
+    return NextResponse.json({ success: true, message: "Lesson deleted" });
   } catch (error) {
-    console.error("Delete learning path error:", error);
+    console.error("Delete lesson error:", error);
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

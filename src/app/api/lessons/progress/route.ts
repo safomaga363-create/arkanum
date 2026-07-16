@@ -4,12 +4,12 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const progressSchema = z.object({
-  challengeId: z.string(),
-  action: z.enum(["start", "submit", "skip"]),
+  lessonId: z.string(),
+  action: z.enum(["start", "complete", "skip"]),
   score: z.number().optional(),
 });
 
-// Get user's progress for a challenge
+// Get user's lesson progress
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
@@ -21,35 +21,43 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const challengeId = searchParams.get("challengeId");
+    const lessonId = searchParams.get("lessonId");
+    const learningPathId = searchParams.get("learningPathId");
 
-    if (challengeId) {
-      const progress = await prisma.challengeProgress.findUnique({
+    if (lessonId) {
+      const progress = await prisma.lessonProgress.findUnique({
         where: {
-          userId_challengeId: {
+          userId_lessonId: {
             userId: session.user.id,
-            challengeId,
+            lessonId,
           },
         },
       });
       return NextResponse.json({ success: true, data: progress });
     }
 
-    // Get all user progress
-    const allProgress = await prisma.challengeProgress.findMany({
-      where: { userId: session.user.id },
-      include: {
-        challenge: {
-          select: { id: true, title: true, slug: true, difficulty: true, points: true, xpReward: true },
+    if (learningPathId) {
+      const allProgress = await prisma.lessonProgress.findMany({
+        where: {
+          userId: session.user.id,
+          lesson: { learningPathId },
         },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 50,
-    });
+        select: {
+          lessonId: true,
+          status: true,
+          score: true,
+          completedAt: true,
+        },
+      });
+      return NextResponse.json({ success: true, data: allProgress });
+    }
 
-    return NextResponse.json({ success: true, data: allProgress });
+    return NextResponse.json(
+      { success: false, error: "lessonId or learningPathId required" },
+      { status: 400 }
+    );
   } catch (error) {
-    console.error("Get progress error:", error);
+    console.error("Get lesson progress error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }
@@ -57,7 +65,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Start, submit, or skip a challenge
+// Start, complete, or skip a lesson
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -71,14 +79,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = progressSchema.parse(body);
 
-    // Verify challenge exists
-    const challenge = await prisma.challenge.findUnique({
-      where: { id: data.challengeId },
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: data.lessonId },
     });
 
-    if (!challenge) {
+    if (!lesson) {
       return NextResponse.json(
-        { success: false, error: "Challenge not found" },
+        { success: false, error: "Lesson not found" },
         { status: 404 }
       );
     }
@@ -86,17 +93,16 @@ export async function POST(req: NextRequest) {
     const userId = session.user.id;
 
     if (data.action === "start") {
-      // Create or update progress to IN_PROGRESS
-      const progress = await prisma.challengeProgress.upsert({
+      const progress = await prisma.lessonProgress.upsert({
         where: {
-          userId_challengeId: {
+          userId_lessonId: {
             userId,
-            challengeId: data.challengeId,
+            lessonId: data.lessonId,
           },
         },
         create: {
           userId,
-          challengeId: data.challengeId,
+          lessonId: data.lessonId,
           status: "IN_PROGRESS",
           attempts: 1,
         },
@@ -109,41 +115,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, data: progress });
     }
 
-    if (data.action === "submit") {
+    if (data.action === "complete") {
       const score = data.score || 100;
 
-      // Update progress to SOLVED
-      const progress = await prisma.challengeProgress.upsert({
+      const progress = await prisma.lessonProgress.upsert({
         where: {
-          userId_challengeId: {
+          userId_lessonId: {
             userId,
-            challengeId: data.challengeId,
+            lessonId: data.lessonId,
           },
         },
         create: {
           userId,
-          challengeId: data.challengeId,
+          lessonId: data.lessonId,
           status: "SOLVED",
           score,
           attempts: 1,
-          solvedAt: new Date(),
+          completedAt: new Date(),
         },
         update: {
           status: "SOLVED",
           score,
-          solvedAt: new Date(),
+          completedAt: new Date(),
         },
       });
 
-      // Award XP to user
+      // Award XP
       await prisma.user.update({
         where: { id: userId },
         data: {
-          xp: { increment: challenge.xpReward },
+          xp: { increment: lesson.xpReward },
         },
       });
 
-      // Calculate new level (every 500 XP = 1 level)
+      // Recalculate level
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { xp: true },
@@ -160,21 +165,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         data: progress,
-        message: `Challenge solved! +${challenge.xpReward} XP`,
+        message: `Lesson completed! +${lesson.xpReward} XP`,
       });
     }
 
     if (data.action === "skip") {
-      const progress = await prisma.challengeProgress.upsert({
+      const progress = await prisma.lessonProgress.upsert({
         where: {
-          userId_challengeId: {
+          userId_lessonId: {
             userId,
-            challengeId: data.challengeId,
+            lessonId: data.lessonId,
           },
         },
         create: {
           userId,
-          challengeId: data.challengeId,
+          lessonId: data.lessonId,
           status: "SKIPPED",
         },
         update: {
@@ -196,8 +201,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.error("Progress error:", error);
+    console.error("Lesson progress error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

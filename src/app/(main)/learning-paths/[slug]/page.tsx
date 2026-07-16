@@ -3,32 +3,34 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSession } from "next-auth/react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
+  BookOpen,
+  Clock,
   Target,
   Zap,
-  Clock,
+  Play,
+  CheckCircle,
   Lock,
-  ArrowUpRight,
 } from "lucide-react";
 import { getDifficultyColor } from "@/lib/utils";
 
-interface Challenge {
+interface Lesson {
   id: string;
   title: string;
   slug: string;
   description: string;
+  contentType: string;
   difficulty: string;
-  category: string;
+  durationMin: number;
   points: number;
   xpReward: number;
-  timeLimitMin: number | null;
-  isFree: boolean;
-  entryFee: number;
+  sortOrder: number;
 }
 
 interface LearningPathDetail {
@@ -39,45 +41,51 @@ interface LearningPathDetail {
   icon: string | null;
   color: string;
   difficulty: string;
-  challenges: Challenge[];
+  lessons: Lesson[];
 }
+
+interface LessonProgress {
+  lessonId: string;
+  status: string;
+  score: number;
+  completedAt: string | null;
+}
+
+const contentTypeIcons: Record<string, string> = {
+  TEXT: "📄",
+  VIDEO: "🎬",
+  INTERACTIVE: "🎮",
+  QUIZ: "❓",
+  PRACTICAL: "🔧",
+};
 
 export default function LearningPathDetailPage() {
   const params = useParams();
+  const { data: session } = useSession();
   const [path, setPath] = useState<LearningPathDetail | null>(null);
+  const [progress, setProgress] = useState<LessonProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch challenges filtered by learning path
-    fetch(`/api/challenges?learningPathId=${params.slug}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data.items.length > 0) {
-          // Build path from first challenge's learning path data
-          const firstChallenge = data.data.items[0];
-          setPath({
-            id: params.slug as string,
-            title: firstChallenge.learningPathId || "Learning Path",
-            slug: params.slug as string,
-            description: "",
-            icon: null,
-            color: "#00f0ff",
-            difficulty: "MEDIUM",
-            challenges: data.data.items,
-          });
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [params.slug]);
+    Promise.all([
+      fetch(`/api/learning-paths/${params.slug}`).then((r) => r.json()),
+      session?.user?.id
+        ? fetch(`/api/lessons/progress?learningPathId=${params.slug}`).then((r) => r.json())
+        : Promise.resolve({ success: false }),
+    ]).then(([pathData, progressData]) => {
+      if (pathData.success) setPath(pathData.data);
+      if (progressData.success) setProgress(progressData.data);
+    }).finally(() => setLoading(false));
+  }, [params.slug, session?.user?.id]);
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="h-8 w-48 bg-secondary animate-pulse rounded" />
         <div className="h-32 bg-secondary animate-pulse rounded-xl" />
-        <div className="grid md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 bg-secondary animate-pulse rounded-xl" />
+        <div className="grid gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-24 bg-secondary animate-pulse rounded-xl" />
           ))}
         </div>
       </div>
@@ -95,8 +103,8 @@ export default function LearningPathDetailPage() {
     );
   }
 
-  const solvedCount = 0; // Would come from progress API
-  const progress = path.challenges.length > 0 ? (solvedCount / path.challenges.length) * 100 : 0;
+  const completedCount = progress.filter((p) => p.status === "SOLVED").length;
+  const progressPercent = path.lessons.length > 0 ? (completedCount / path.lessons.length) * 100 : 0;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -122,11 +130,17 @@ export default function LearningPathDetailPage() {
               <h1 className="text-2xl font-bold mb-2">{path.title}</h1>
               <p className="text-muted-foreground mb-4">{path.description}</p>
               <div className="flex items-center gap-4">
-                <Badge variant="outline" style={{ borderColor: `${getDifficultyColor(path.difficulty)}40`, color: getDifficultyColor(path.difficulty) }}>
+                <Badge
+                  variant="outline"
+                  style={{
+                    borderColor: `${getDifficultyColor(path.difficulty)}40`,
+                    color: getDifficultyColor(path.difficulty),
+                  }}
+                >
                   {path.difficulty}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
-                  {path.challenges.length} challenges
+                  {path.lessons.length} lessons · {path.lessons.reduce((acc, l) => acc + l.durationMin, 0)} min total
                 </span>
               </div>
             </div>
@@ -135,67 +149,76 @@ export default function LearningPathDetailPage() {
           <div className="mt-6">
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{solvedCount}/{path.challenges.length}</span>
+              <span className="font-medium">{completedCount}/{path.lessons.length} lessons</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progressPercent} className="h-2" />
           </div>
         </CardContent>
       </Card>
 
-      {/* Challenges list */}
+      {/* Lessons list */}
       <div className="space-y-3">
-        {path.challenges.map((challenge, index) => (
-          <Link key={challenge.id} href={`/challenges/${challenge.slug}`}>
-            <Card className="glass card-hover group">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0">
-                  {index + 1}
-                </div>
+        {path.lessons.map((lesson, index) => {
+          const lessonProgress = progress.find((p) => p.lessonId === lesson.id);
+          const isCompleted = lessonProgress?.status === "SOLVED";
+          const isInProgress = lessonProgress?.status === "IN_PROGRESS";
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium group-hover:text-primary transition-colors truncate">
-                      {challenge.title}
-                    </h3>
-                    {!challenge.isFree && (
-                      <Badge variant="warning" className="text-xs shrink-0">
-                        <Lock className="w-2 h-2 mr-1" />
-                        ${challenge.entryFee}
-                      </Badge>
+          return (
+            <Link key={lesson.id} href={`/lessons/${lesson.id}`}>
+              <Card className="glass card-hover group">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0">
+                    {isCompleted ? (
+                      <CheckCircle className="h-5 w-5 text-green-400" />
+                    ) : (
+                      index + 1
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {challenge.description}
-                  </p>
-                </div>
 
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-right hidden sm:block">
-                    <div className="flex items-center gap-1 text-xs">
-                      <Target className="h-3 w-3" />
-                      {challenge.points}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium group-hover:text-primary transition-colors truncate">
+                        {lesson.title}
+                      </h3>
+                      <span className="text-sm">{contentTypeIcons[lesson.contentType] || "📄"}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-cyan-400">
-                      <Zap className="h-3 w-3" />
-                      {challenge.xpReward} XP
-                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {lesson.description}
+                    </p>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="text-xs shrink-0"
-                    style={{
-                      borderColor: `${getDifficultyColor(challenge.difficulty)}40`,
-                      color: getDifficultyColor(challenge.difficulty),
-                    }}
-                  >
-                    {challenge.difficulty}
-                  </Badge>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="text-right hidden sm:block">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {lesson.durationMin}m
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-cyan-400">
+                        <Zap className="h-3 w-3" />
+                        {lesson.xpReward} XP
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="text-xs shrink-0"
+                      style={{
+                        borderColor: `${getDifficultyColor(lesson.difficulty)}40`,
+                        color: getDifficultyColor(lesson.difficulty),
+                      }}
+                    >
+                      {lesson.difficulty}
+                    </Badge>
+                    {isCompleted ? (
+                      <CheckCircle className="h-5 w-5 text-green-400 shrink-0" />
+                    ) : (
+                      <Play className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

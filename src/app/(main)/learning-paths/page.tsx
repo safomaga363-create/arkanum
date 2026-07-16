@@ -91,7 +91,7 @@ export default function LearningPathsPage() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Target className="h-3 w-3" />
-                        {path._count.challenges} challenges
+                        {path._count.lessons} lessons
                       </div>
                     </div>
                     <Button variant="ghost" size="sm">

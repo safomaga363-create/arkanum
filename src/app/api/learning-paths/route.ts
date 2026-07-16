@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
       orderBy: { sortOrder: "asc" },
       include: {
         _count: {
-          select: { challenges: { where: { isPublished: true } } },
+          select: { lessons: { where: { isPublished: true } } },
         },
       },
     });

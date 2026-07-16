@@ -646,7 +646,7 @@ export default function AdminPage() {
                           <span className="text-2xl">{lp.icon}</span>
                           <div>
                             <p className="font-medium">{lp.title}</p>
-                            <p className="text-xs text-muted-foreground">{lp._count?.challenges || 0} challenges · {lp.difficulty}</p>
+                            <p className="text-xs text-muted-foreground">{lp._count?.lessons || 0} lessons · {lp.difficulty}</p>
                           </div>
                         </div>
                         <Button size="sm" variant="destructive" onClick={() => handleDeleteLp(lp.id)}>

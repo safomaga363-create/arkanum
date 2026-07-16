@@ -24,7 +24,7 @@ model User {
   xp            Int       @default(0)
   level         Int       @default(1)
   rank          UserRank  @default(BRONZE)
-  balance       Float     @default(0) // earnings from contests
+  balance       Float     @default(0)
   totalEarned   Float     @default(0) @map("total_earned")
   totalSpent    Float     @default(0) @map("total_spent")
   country       String?
@@ -35,13 +35,15 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   contestEntries      ContestEntry[]
-  challengeProgress   ChallengeProgress[]
+  lessonProgress      LessonProgress[]
   payments            Payment[]
   withdrawals         Withdrawal[]
   notifications       Notification[]
   premiumTransactions PremiumTransaction[]
   adminLogs           AdminLog[]
 
+  @@index([xp(sort: Desc)])
+  @@index([role])
   @@map("users")
 }
 
@@ -62,7 +64,7 @@ enum UserRank {
 }
 
 // ===========================
-// LEARNING PATHS & CHALLENGES
+// LEARNING PATHS & LESSONS
 // ===========================
 
 model LearningPath {
@@ -78,69 +80,62 @@ model LearningPath {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  challenges Challenge[]
+  lessons Lesson[]
 
+  @@index([sortOrder])
   @@map("learning_paths")
 }
 
-model Challenge {
+model Lesson {
   id            String      @id @default(cuid())
   title         String
-  slug          String      @unique
+  slug          String
   description   String
-  content       String?     // markdown content for challenge details
-  hints         String?     // JSON array of hints
+  content       String?     // markdown content
+  contentType   LessonType  @default(TEXT) @map("content_type")
   difficulty    Difficulty
-  category      String
+  durationMin   Int         @default(15) @map("duration_min") // estimated minutes
   points        Int         @default(100)
   xpReward      Int         @default(50) @map("xp_reward")
-  timeLimitMin  Int?        @map("time_limit_min") // minutes
-  maxAttempts   Int?        @map("max_attempts")
+  sortOrder     Int         @default(0) @map("sort_order")
   isPublished   Boolean     @default(true) @map("is_published")
-  isFree        Boolean     @default(true) @map("is_free")
-  entryFee      Float       @default(0) @map("entry_fee") // for paid challenges
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
-  learningPathId String?   @map("learning_path_id")
-  learningPath   LearningPath? @relation(fields: [learningPathId], references: [id])
-  progress       ChallengeProgress[]
-  contestChallenges ContestChallenge[]
+  learningPathId String      @map("learning_path_id")
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id])
+  progress       LessonProgress[]
 
-  @@map("challenges")
+  @@unique([learningPathId, slug])
+  @@index([learningPathId, sortOrder])
+  @@map("lessons")
 }
 
-model ChallengeProgress {
-  id          String           @id @default(cuid())
-  userId      String           @map("user_id")
-  challengeId String           @map("challenge_id")
-  status      ProgressStatus   @default(IN_PROGRESS)
-  score       Int              @default(0)
-  attempts    Int              @default(0)
-  solvedAt    DateTime?        @map("solved_at")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+model LessonProgress {
+  id        String         @id @default(cuid())
+  userId    String         @map("user_id")
+  lessonId  String         @map("lesson_id")
+  status    ProgressStatus @default(IN_PROGRESS)
+  score     Int            @default(0)
+  attempts  Int            @default(0)
+  completedAt DateTime?    @map("completed_at")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
 
-  user      User      @relation(fields: [userId], references: [id])
-  challenge Challenge @relation(fields: [challengeId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
 
-  @@unique([userId, challengeId])
-  @@map("challenge_progress")
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("lesson_progress")
 }
 
-enum Difficulty {
-  EASY
-  MEDIUM
-  HARD
-  EXPERT
-  LEGENDARY
-}
-
-enum ProgressStatus {
-  IN_PROGRESS
-  SOLVED
-  FAILED
-  SKIPPED
+enum LessonType {
+  TEXT
+  VIDEO
+  INTERACTIVE
+  QUIZ
+  PRACTICAL
 }
 
 // ===========================
@@ -152,27 +147,27 @@ model Contest {
   title         String
   slug          String        @unique
   description   String
-  rules         String?       // contest rules
+  rules         String?
   prizePool     Float         @default(0) @map("prize_pool")
   entryFee      Float         @default(0) @map("entry_fee")
-  commission    Float         @default(20) // percentage taken by platform
-  currency      String        @default("USD")
+  commission    Float         @default(20)
   difficulty    Difficulty
   maxParticipants Int?        @map("max_participants")
   currentParticipants Int     @default(0) @map("current_participants")
   status        ContestStatus @default(DRAFT)
   startDate     DateTime      @map("start_date")
   endDate       DateTime      @map("end_date")
-  duration      Int           @default(120) // minutes
-  prizes        String?       // JSON: [{place: 1, amount: X, label: "..."}]
+  duration      Int           @default(120)
+  prizes        String?       // JSON
   isFeatured    Boolean       @default(false) @map("is_featured")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  entries       ContestEntry[]
-  challenges    ContestChallenge[]
-  payments      Payment[]
+  entries ContestEntry[]
+  payments Payment[]
 
+  @@index([status])
+  @@index([startDate])
   @@map("contests")
 }
 
@@ -190,21 +185,8 @@ model ContestEntry {
   contest Contest @relation(fields: [contestId], references: [id])
 
   @@unique([userId, contestId])
+  @@index([contestId, score(sort: Desc)])
   @@map("contest_entries")
-}
-
-model ContestChallenge {
-  id          String   @id @default(cuid())
-  contestId   String   @map("contest_id")
-  challengeId String   @map("challenge_id")
-  sortOrder   Int      @default(0) @map("sort_order")
-  points      Int      @default(100)
-
-  contest   Contest   @relation(fields: [contestId], references: [id])
-  challenge Challenge @relation(fields: [challengeId], references: [id])
-
-  @@unique([contestId, challengeId])
-  @@map("contest_challenges")
 }
 
 enum ContestStatus {
@@ -213,6 +195,21 @@ enum ContestStatus {
   ACTIVE
   FINISHED
   CANCELLED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+  LEGENDARY
+}
+
+enum ProgressStatus {
+  IN_PROGRESS
+  SOLVED
+  FAILED
+  SKIPPED
 }
 
 enum EntryStatus {
@@ -236,8 +233,8 @@ model Payment {
   type            PaymentType
   status          PaymentStatus @default(PENDING)
   txHash          String?       @map("tx_hash")
-  externalId      String?       @map("external_id") // ID from payment gateway
-  gatewayResponse String?       @map("gateway_response") // JSON
+  externalId      String?       @map("external_id")
+  gatewayResponse String?       @map("gateway_response")
   description     String?
   notes           String?
   contestId       String?       @map("contest_id")
@@ -247,6 +244,8 @@ model Payment {
   user    User    @relation(fields: [userId], references: [id])
   contest Contest? @relation(fields: [contestId], references: [id])
 
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
   @@map("payments")
 }
 
@@ -258,7 +257,7 @@ model Withdrawal {
   netAmount Float            @map("net_amount")
   currency  String           @default("USDT")
   network   String           @default("TRC20")
-  wallet    String           // destination wallet address
+  wallet    String
   status    WithdrawalStatus @default(PENDING)
   txHash    String?          @map("tx_hash")
   notes     String?
@@ -267,6 +266,8 @@ model Withdrawal {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
   @@map("withdrawals")
 }
 
@@ -275,7 +276,7 @@ model PremiumTransaction {
   userId    String   @map("user_id")
   amount    Float
   currency  String   @default("USDT")
-  period    String   // e.g., "1_month", "3_months", "1_year"
+  period    String
   txHash    String?  @map("tx_hash")
   status    PaymentStatus @default(PENDING)
   startsAt  DateTime @map("starts_at")
@@ -290,7 +291,6 @@ model PremiumTransaction {
 enum PaymentType {
   CONTEST_ENTRY
   PREMIUM_SUBSCRIPTION
-  CHALLENGE_ENTRY
   DEPOSIT
   WITHDRAWAL
 }
@@ -325,6 +325,7 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id])
 
+  @@index([userId, read])
   @@map("notifications")
 }
 
@@ -332,7 +333,7 @@ model AdminLog {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
   action    String
-  details   String?  // JSON
+  details   String?
   targetId  String?  @map("target_id")
   targetType String? @map("target_type")
   createdAt DateTime @default(now()) @map("created_at")
