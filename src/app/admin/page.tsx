@@ -22,6 +22,9 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  BookOpen,
+  Target,
+  Trash2,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -43,6 +46,12 @@ export default function AdminPage() {
     startDate: "",
   });
   const [creatingContest, setCreatingContest] = useState(false);
+  const [learningPaths, setLearningPaths] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<any[]>([]);
+  const [lpForm, setLpForm] = useState({ title: "", description: "", icon: "📚", color: "#00f0ff", difficulty: "MEDIUM" });
+  const [challengeForm, setChallengeForm] = useState({ title: "", description: "", difficulty: "EASY", category: "Web Security", points: "100", xpReward: "50", entryFee: "0", learningPathId: "" });
+  const [creatingLp, setCreatingLp] = useState(false);
+  const [creatingChallenge, setCreatingChallenge] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -57,10 +66,14 @@ export default function AdminPage() {
         fetch("/api/admin/stats").then((r) => r.json()),
         fetch("/api/admin/withdrawals").then((r) => r.json()),
         fetch("/api/admin/deposits").then((r) => r.json()),
-      ]).then(([s, w, d]) => {
+        fetch("/api/admin/learning-paths").then((r) => r.json()),
+        fetch("/api/admin/challenges").then((r) => r.json()),
+      ]).then(([s, w, d, lp, ch]) => {
         if (s.success) setStats(s.data);
         if (w.success) setWithdrawals(w.data);
         if (d.success) setDeposits(d.data);
+        if (lp.success) setLearningPaths(lp.data);
+        if (ch.success) setChallenges(ch.data);
       }).finally(() => setLoading(false));
     }
   }, [session]);
@@ -136,6 +149,70 @@ export default function AdminPage() {
     } finally {
       setCreatingContest(false);
     }
+  }
+
+  async function handleCreateLp() {
+    if (!lpForm.title || !lpForm.description) return;
+    setCreatingLp(true);
+    try {
+      const res = await fetch("/api/admin/learning-paths", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lpForm),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Learning path created!");
+        setLearningPaths([...learningPaths, data.data]);
+        setLpForm({ title: "", description: "", icon: "📚", color: "#00f0ff", difficulty: "MEDIUM" });
+      } else {
+        alert(data.error || "Failed");
+      }
+    } finally {
+      setCreatingLp(false);
+    }
+  }
+
+  async function handleDeleteLp(id: string) {
+    if (!confirm("Delete this learning path?")) return;
+    const res = await fetch(`/api/admin/learning-paths?id=${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.success) setLearningPaths(learningPaths.filter((lp) => lp.id !== id));
+  }
+
+  async function handleCreateChallenge() {
+    if (!challengeForm.title || !challengeForm.description) return;
+    setCreatingChallenge(true);
+    try {
+      const res = await fetch("/api/admin/challenges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...challengeForm,
+          points: parseInt(challengeForm.points),
+          xpReward: parseInt(challengeForm.xpReward),
+          entryFee: parseFloat(challengeForm.entryFee),
+          learningPathId: challengeForm.learningPathId || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Challenge created!");
+        setChallenges([data.data, ...challenges]);
+        setChallengeForm({ title: "", description: "", difficulty: "EASY", category: "Web Security", points: "100", xpReward: "50", entryFee: "0", learningPathId: "" });
+      } else {
+        alert(data.error || "Failed");
+      }
+    } finally {
+      setCreatingChallenge(false);
+    }
+  }
+
+  async function handleDeleteChallenge(id: string) {
+    if (!confirm("Delete this challenge?")) return;
+    const res = await fetch(`/api/admin/challenges?id=${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (data.success) setChallenges(challenges.filter((c) => c.id !== id));
   }
 
   if (loading) {
@@ -235,6 +312,14 @@ export default function AdminPage() {
           <TabsTrigger value="contests">
             <Swords className="h-4 w-4 mr-2" />
             Create Contest
+          </TabsTrigger>
+          <TabsTrigger value="learning-paths">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Learning Paths ({learningPaths.length})
+          </TabsTrigger>
+          <TabsTrigger value="challenges">
+            <Target className="h-4 w-4 mr-2" />
+            Challenges ({challenges.length})
           </TabsTrigger>
         </TabsList>
 
@@ -500,6 +585,174 @@ export default function AdminPage() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Learning Paths */}
+        <TabsContent value="learning-paths" className="mt-6">
+          <div className="space-y-6">
+            <Card className="glass">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-primary" />
+                  Create Learning Path
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <Input placeholder="e.g. Web Security Fundamentals" value={lpForm.title} onChange={(e) => setLpForm({ ...lpForm, title: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Icon</label>
+                    <Input placeholder="📚" value={lpForm.icon} onChange={(e) => setLpForm({ ...lpForm, icon: e.target.value })} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Description</label>
+                  <Textarea placeholder="Describe this learning path..." value={lpForm.description} onChange={(e) => setLpForm({ ...lpForm, description: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Color</label>
+                    <Input type="color" value={lpForm.color} onChange={(e) => setLpForm({ ...lpForm, color: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Difficulty</label>
+                    <select className="flex h-10 w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm" value={lpForm.difficulty} onChange={(e) => setLpForm({ ...lpForm, difficulty: e.target.value })}>
+                      <option value="EASY">Easy</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HARD">Hard</option>
+                    </select>
+                  </div>
+                </div>
+                <Button onClick={handleCreateLp} disabled={creatingLp || !lpForm.title}>
+                  {creatingLp ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Create Learning Path
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="glass">
+              <CardHeader><CardTitle>Existing Learning Paths ({learningPaths.length})</CardTitle></CardHeader>
+              <CardContent>
+                {learningPaths.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No learning paths</p>
+                ) : (
+                  <div className="space-y-2">
+                    {learningPaths.map((lp) => (
+                      <div key={lp.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{lp.icon}</span>
+                          <div>
+                            <p className="font-medium">{lp.title}</p>
+                            <p className="text-xs text-muted-foreground">{lp._count?.challenges || 0} challenges · {lp.difficulty}</p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteLp(lp.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Challenges */}
+        <TabsContent value="challenges" className="mt-6">
+          <div className="space-y-6">
+            <Card className="glass">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5 text-primary" />
+                  Create Challenge
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <Input placeholder="e.g. SQL Injection Basics" value={challengeForm.title} onChange={(e) => setChallengeForm({ ...challengeForm, title: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Category</label>
+                    <Input placeholder="Web Security" value={challengeForm.category} onChange={(e) => setChallengeForm({ ...challengeForm, category: e.target.value })} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Description</label>
+                  <Textarea placeholder="Describe this challenge..." value={challengeForm.description} onChange={(e) => setChallengeForm({ ...challengeForm, description: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Difficulty</label>
+                    <select className="flex h-10 w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm" value={challengeForm.difficulty} onChange={(e) => setChallengeForm({ ...challengeForm, difficulty: e.target.value })}>
+                      <option value="EASY">Easy</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HARD">Hard</option>
+                      <option value="EXPERT">Expert</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Points</label>
+                    <Input type="number" value={challengeForm.points} onChange={(e) => setChallengeForm({ ...challengeForm, points: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">XP Reward</label>
+                    <Input type="number" value={challengeForm.xpReward} onChange={(e) => setChallengeForm({ ...challengeForm, xpReward: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Entry Fee ($)</label>
+                    <Input type="number" value={challengeForm.entryFee} onChange={(e) => setChallengeForm({ ...challengeForm, entryFee: e.target.value })} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Learning Path</label>
+                  <select className="flex h-10 w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm" value={challengeForm.learningPathId} onChange={(e) => setChallengeForm({ ...challengeForm, learningPathId: e.target.value })}>
+                    <option value="">None</option>
+                    {learningPaths.map((lp) => (
+                      <option key={lp.id} value={lp.id}>{lp.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <Button onClick={handleCreateChallenge} disabled={creatingChallenge || !challengeForm.title}>
+                  {creatingChallenge ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Create Challenge
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="glass">
+              <CardHeader><CardTitle>Existing Challenges ({challenges.length})</CardTitle></CardHeader>
+              <CardContent>
+                {challenges.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No challenges</p>
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {challenges.map((ch) => (
+                      <div key={ch.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
+                        <div className="flex items-center gap-3">
+                          <Badge variant={ch.difficulty === "EASY" ? "success" : ch.difficulty === "MEDIUM" ? "warning" : "destructive"} className="text-xs">
+                            {ch.difficulty}
+                          </Badge>
+                          <div>
+                            <p className="font-medium text-sm">{ch.title}</p>
+                            <p className="text-xs text-muted-foreground">{ch.category} · {ch.points} pts · {ch.xpReward} XP {ch.entryFee > 0 ? `· $${ch.entryFee}` : "· Free"}</p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteChallenge(ch.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
