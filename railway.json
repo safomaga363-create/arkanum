@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npx prisma generate && npx prisma db push --skip-generate && node server.js",
+    "startCommand": "npx prisma generate && npx prisma db push --skip-generate && npx next start",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 300
   }
