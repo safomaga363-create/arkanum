@@ -21,7 +21,6 @@ import {
   Shield,
   ChevronLeft,
   Bell,
-  Wallet,
 } from "lucide-react";
 import { getRankColor } from "@/lib/utils";
 
