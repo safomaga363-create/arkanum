@@ -27,12 +27,6 @@ interface Player {
   totalEarned: number;
 }
 
-const rankColors: Record<number, string> = {
-  1: "#ffd700",
-  2: "#c0c0c0",
-  3: "#cd7f32",
-};
-
 function getRankForXP(xp: number): string {
   if (xp >= 250000) return "LEGENDARY";
   if (xp >= 100000) return "MASTER";
@@ -118,7 +112,7 @@ export default function LeaderboardPage() {
                       </Avatar>
                       <p className="font-bold text-sm truncate">{player.displayName || player.username}</p>
                       <p className="text-xs text-muted-foreground">Lv. {player.level}</p>
-                      <p className="text-lg font-bold mt-2" style={{ color: rankColors[player.rank + 1] || "#00f0ff" }}>
+                      <p className="text-lg font-bold mt-2" style={{ color: getRankColor(player.rank) }}>
                         {player.xp.toLocaleString()} XP
                       </p>
                       <div className="mt-2">
