@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Wrench,
   Loader2,
+  Target,
 } from "lucide-react";
 import { getDifficultyColor } from "@/lib/utils";
 
