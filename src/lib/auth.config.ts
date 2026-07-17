@@ -19,4 +19,15 @@ export default {
     signIn: "/login",
     error: "/login",
   },
+  callbacks: {
+    async jwt({ token, user }) {
+      // When user logs in, the token gets role from auth.ts jwt callback.
+      // On subsequent requests, the decoded JWT already has role.
+      // Pass it through for the middleware.
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+  },
 } satisfies NextAuthConfig;
