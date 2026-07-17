@@ -62,7 +62,7 @@ export default function PremiumPage() {
   const [premiumStatus, setPremiumStatus] = useState<any>(null);
 
   useEffect(() => {
-    fetch("/api/payments/premium")
+    fetch("/api/payments/premium", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         if (data.success) setPremiumStatus(data.data);
@@ -75,6 +75,7 @@ export default function PremiumPage() {
       const res = await fetch("/api/payments/premium", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ plan: planKey }),
       });
       const data = await res.json();

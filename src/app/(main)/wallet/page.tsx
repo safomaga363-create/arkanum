@@ -40,8 +40,8 @@ export default function WalletPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/payments/history").then((r) => r.json()),
-      fetch("/api/payments/withdraw").then((r) => r.json()),
+      fetch("/api/payments/history", { credentials: "include" }).then((r) => r.json()),
+      fetch("/api/payments/withdraw", { credentials: "include" }).then((r) => r.json()),
     ]).then(([p, w]) => {
       if (p.success) setPayments(p.data);
       if (w.success) setWithdrawals(w.data);
@@ -55,6 +55,7 @@ export default function WalletPage() {
       const res = await fetch("/api/payments/deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           amount: parseFloat(depositAmount),
           txHash: depositTxHash,
@@ -82,6 +83,7 @@ export default function WalletPage() {
       const res = await fetch("/api/payments/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           amount: parseFloat(withdrawAmount),
           wallet: withdrawWallet,

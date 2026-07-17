@@ -65,7 +65,7 @@ export default function ChallengeDetailPage() {
     Promise.all([
       fetch(`/api/challenges/${params.id}`).then((res) => res.json()),
       session?.user?.id
-        ? fetch(`/api/challenges/progress?challengeId=${params.id}`).then((res) => res.json())
+        ? fetch(`/api/challenges/progress?challengeId=${params.id}`, { credentials: "include" }).then((res) => res.json())
         : Promise.resolve({ success: false }),
     ]).then(([challengeData, progressData]) => {
       if (challengeData.success) setChallenge(challengeData.data);
@@ -82,6 +82,7 @@ export default function ChallengeDetailPage() {
       const res = await fetch("/api/challenges/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ challengeId: challenge!.id, action: "start" }),
       });
       const data = await res.json();
@@ -100,6 +101,7 @@ export default function ChallengeDetailPage() {
       const res = await fetch("/api/challenges/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           challengeId: challenge.id,
           action: "submit",

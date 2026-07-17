@@ -74,7 +74,9 @@ export default function LearningPathDetailPage() {
         if (pathData.success) {
           setPath(pathData.data);
           if (session?.user?.id && pathData.data?.id) {
-            fetch(`/api/lessons/progress?learningPathId=${pathData.data.id}`)
+            fetch(`/api/lessons/progress?learningPathId=${pathData.data.id}`, {
+                credentials: "include",
+              })
               .then((r) => r.json())
               .then((progressData) => {
                 if (progressData.success) setProgress(progressData.data);

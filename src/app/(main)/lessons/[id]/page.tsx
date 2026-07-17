@@ -11,7 +11,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowLeft,
   ArrowRight,
-  BookOpen,
   Clock,
   Zap,
   CheckCircle,
@@ -23,8 +22,10 @@ import {
   Wrench,
   Loader2,
   Target,
+  AlertCircle,
 } from "lucide-react";
 import { getDifficultyColor } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 interface Lesson {
   id: string;
@@ -66,52 +67,92 @@ const contentTypeConfig: Record<string, { icon: React.ReactNode; label: string }
 export default function LessonDetailPage() {
   const params = useParams();
   const { data: session } = useSession();
+  const { t } = useI18n();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] = useState<LessonProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/lessons/${params.id}`).then((r) => r.json()),
-      session?.user?.id
-        ? fetch(`/api/lessons/progress?lessonId=${params.id}`).then((r) => r.json())
-        : Promise.resolve({ success: false }),
-    ]).then(([lessonData, progressData]) => {
-      if (lessonData.success) setLesson(lessonData.data);
-      if (progressData.success && progressData.data) setProgress(progressData.data);
-    }).finally(() => setLoading(false));
+    if (!params.id) return;
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/lessons/${params.id}`)
+      .then((r) => r.json())
+      .then((lessonData) => {
+        if (lessonData.success) {
+          setLesson(lessonData.data);
+          if (session?.user?.id) {
+            return fetch(`/api/lessons/progress?lessonId=${lessonData.data.id}`, {
+              credentials: "include",
+            }).then((r) => r.json());
+          }
+          return null;
+        } else {
+          setError(lessonData.error || "Lesson not found");
+        }
+      })
+      .then((progressData) => {
+        if (progressData?.success && progressData.data) {
+          setProgress(progressData.data);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load lesson:", err);
+        setError("Failed to load lesson. Please try again.");
+      })
+      .finally(() => setLoading(false));
   }, [params.id, session?.user?.id]);
 
   async function handleStart() {
     if (!session?.user?.id || !lesson) return;
+    setStarting(true);
+    setError(null);
     try {
       const res = await fetch("/api/lessons/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ lessonId: lesson.id, action: "start" }),
       });
       const data = await res.json();
-      if (data.success) setProgress(data.data);
-    } catch (error) {
-      console.error(error);
+      if (data.success) {
+        setProgress(data.data);
+      } else {
+        setError(data.error || "Failed to start lesson");
+      }
+    } catch (err) {
+      console.error("Start lesson error:", err);
+      setError("Network error. Please check your connection and try again.");
+    } finally {
+      setStarting(false);
     }
   }
 
   async function handleComplete() {
     if (!session?.user?.id || !lesson) return;
     setCompleting(true);
+    setError(null);
     try {
       const res = await fetch("/api/lessons/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ lessonId: lesson.id, action: "complete", score: 100 }),
       });
       const data = await res.json();
       if (data.success) {
         setProgress(data.data);
         window.location.reload();
+      } else {
+        setError(data.error || "Failed to complete lesson");
       }
+    } catch (err) {
+      console.error("Complete lesson error:", err);
+      setError("Network error. Please try again.");
     } finally {
       setCompleting(false);
     }
@@ -127,18 +168,31 @@ export default function LessonDetailPage() {
     );
   }
 
+  if (error && !lesson) {
+    return (
+      <div className="text-center py-20">
+        <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold mb-2">{error}</h2>
+        <Link href="/learning-paths" className="text-primary hover:underline mt-4 inline-block">
+          {t.learning.backToLearningPaths}
+        </Link>
+      </div>
+    );
+  }
+
   if (!lesson) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-xl font-semibold">Lesson not found</h2>
+        <h2 className="text-xl font-semibold">{t.learning.lessonNotFound}</h2>
         <Link href="/learning-paths" className="text-primary hover:underline mt-4 inline-block">
-          Back to Learning Paths
+          {t.learning.backToLearningPaths}
         </Link>
       </div>
     );
   }
 
   const isCompleted = progress?.status === "SOLVED";
+  const isInProgress = progress?.status === "IN_PROGRESS";
   const contentType = contentTypeConfig[lesson.contentType] || contentTypeConfig.TEXT;
 
   return (
@@ -152,6 +206,14 @@ export default function LessonDetailPage() {
           {lesson.learningPath.title}
         </Link>
       </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
 
       {/* Header */}
       <div>
@@ -172,7 +234,12 @@ export default function LessonDetailPage() {
           {isCompleted && (
             <Badge variant="success">
               <CheckCircle className="w-3 h-3 mr-1" />
-              Completed
+              {t.learning.completed}
+            </Badge>
+          )}
+          {isInProgress && !isCompleted && (
+            <Badge variant="warning">
+              {t.learning.inProgress}
             </Badge>
           )}
         </div>
@@ -201,12 +268,12 @@ export default function LessonDetailPage() {
                 <div className="text-center">
                   <Target className="h-5 w-5 text-primary mx-auto mb-1" />
                   <p className="text-lg font-bold">{lesson.points}</p>
-                  <p className="text-xs text-muted-foreground">Points</p>
+                  <p className="text-xs text-muted-foreground">{t.learning.points}</p>
                 </div>
                 <div className="text-center">
                   <Zap className="h-5 w-5 text-cyan-400 mx-auto mb-1" />
                   <p className="text-lg font-bold">{lesson.xpReward}</p>
-                  <p className="text-xs text-muted-foreground">XP</p>
+                  <p className="text-xs text-muted-foreground">{t.learning.xp}</p>
                 </div>
               </div>
 
@@ -214,40 +281,44 @@ export default function LessonDetailPage() {
 
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>Estimated: {lesson.durationMin} minutes</span>
+                <span>{t.learning.estimated}: {lesson.durationMin} {t.learning.lessonDuration}</span>
               </div>
 
               {progress && (
                 <div className="flex items-center gap-2 text-sm">
                   <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                  <span>Attempts: {progress.attempts}</span>
+                  <span>{t.learning.attempts}: {progress.attempts}</span>
                 </div>
               )}
 
               {!session?.user?.id ? (
                 <Link href="/login">
                   <Button className="w-full" size="lg">
-                    Sign in to Start
+                    {t.learning.signInToStart}
                   </Button>
                 </Link>
               ) : isCompleted ? (
                 <Button className="w-full" size="lg" variant="outline" disabled>
                   <CheckCircle className="h-5 w-5 mr-2 text-green-400" />
-                  Lesson Completed!
+                  {t.learning.lessonCompleted}
                 </Button>
-              ) : progress?.status === "IN_PROGRESS" ? (
+              ) : isInProgress ? (
                 <Button className="w-full" size="lg" onClick={handleComplete} disabled={completing}>
                   {completing ? (
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   ) : (
                     <CheckCircle className="h-5 w-5 mr-2" />
                   )}
-                  Mark as Complete
+                  {t.learning.markComplete}
                 </Button>
               ) : (
-                <Button className="w-full" size="lg" onClick={handleStart}>
-                  <Play className="h-5 w-5 mr-2" />
-                  Start Lesson
+                <Button className="w-full" size="lg" onClick={handleStart} disabled={starting}>
+                  {starting ? (
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  ) : (
+                    <Play className="h-5 w-5 mr-2" />
+                  )}
+                  {t.learning.startLesson}
                 </Button>
               )}
             </CardContent>

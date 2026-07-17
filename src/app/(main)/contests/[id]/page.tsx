@@ -98,6 +98,7 @@ export default function ContestDetailPage() {
       const res = await fetch("/api/contests/enter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           contestId: contest.id,
           paymentMethod: "balance",
