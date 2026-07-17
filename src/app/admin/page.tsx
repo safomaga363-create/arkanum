@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -792,6 +793,12 @@ export default function AdminPage() {
         {/* Challenges */}
         <TabsContent value="challenges" className="mt-6">
           <div className="space-y-6">
+            <Link href="/admin/challenges/create">
+              <Button className="w-full" size="lg">
+                <Plus className="h-5 w-5 mr-2" />
+                {t.admin.createChallenge} — Full Page
+              </Button>
+            </Link>
             <Card className="glass">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
