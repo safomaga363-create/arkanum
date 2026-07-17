@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Eye, EyeOff, Zap, Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,13 +34,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError(t.validation.invalidCredentials);
       } else {
         router.push("/dashboard");
         router.refresh();
       }
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t.validation.errorOccurred);
     } finally {
       setLoading(false);
     }
@@ -65,16 +67,16 @@ export default function LoginPage() {
 
         <Card className="glass-strong">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl">{t.auth.loginTitle}</CardTitle>
             <CardDescription>
-              Sign in to continue your journey
+              {t.auth.loginSubtitle}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {registered && (
                 <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm text-center">
-                  Account created successfully! You can now sign in.
+                  {t.auth.accountCreatedSuccess}
                 </div>
               )}
               {error && (
@@ -85,11 +87,11 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Email
+                  {t.auth.email}
                 </label>
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.auth.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -98,12 +100,12 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Password
+                  {t.auth.password}
                 </label>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder={t.auth.passwordPlaceholderLogin}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -128,16 +130,16 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <Zap className="h-5 w-5" />
-                    Sign In
+                    {t.auth.login}
                   </>
                 )}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
+              {t.auth.noAccount}{" "}
               <Link href="/register" className="text-primary hover:underline">
-                Create one
+                {t.auth.createOne}
               </Link>
             </div>
           </CardContent>

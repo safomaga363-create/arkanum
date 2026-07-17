@@ -11,10 +11,10 @@ import {
   Users,
   Trophy,
   Zap,
-  Filter,
   ArrowUpRight,
 } from "lucide-react";
 import { getDifficultyColor } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 interface Contest {
   id: string;
@@ -46,6 +46,7 @@ export default function ContestsPage() {
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const { t } = useI18n();
 
   useEffect(() => {
     setLoading(true);
@@ -67,24 +68,29 @@ export default function ContestsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">
-            <span className="neon-text-purple">Contests</span>
+            <span className="neon-text-purple">{t.contests.title}</span>
           </h1>
           <p className="text-muted-foreground mt-1">
-            Compete for real USDT prizes. Entry fees fund the prize pool.
+            {t.contests.subtitle}
           </p>
         </div>
         <div className="flex gap-2">
-          {["all", "ACTIVE", "UPCOMING", "FINISHED"].map((f) => (
+          {[
+            { key: "all", label: t.common.all },
+            { key: "ACTIVE", label: t.contests.activeContests },
+            { key: "UPCOMING", label: t.contests.upcomingContests },
+            { key: "FINISHED", label: t.contests.pastContests },
+          ].map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.key}
+              onClick={() => setFilter(f.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                filter === f
+                filter === f.key
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               }`}
             >
-              {f === "all" ? "All" : f}
+              {f.label}
             </button>
           ))}
         </div>
@@ -128,24 +134,24 @@ export default function ContestsPage() {
                   <div className="text-center p-3 rounded-lg bg-secondary/50">
                     <Trophy className="h-5 w-5 text-yellow-400 mx-auto mb-1" />
                     <p className="text-lg font-bold">${featured.prizePool.toFixed(0)}</p>
-                    <p className="text-xs text-muted-foreground">Prize Pool</p>
+                    <p className="text-xs text-muted-foreground">{t.contests.prizePool}</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-secondary/50">
                     <Zap className="h-5 w-5 text-primary mx-auto mb-1" />
                     <p className="text-lg font-bold">${featured.entryFee}</p>
-                    <p className="text-xs text-muted-foreground">Entry Fee</p>
+                    <p className="text-xs text-muted-foreground">{t.contests.entryFee}</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-secondary/50">
                     <Users className="h-5 w-5 text-purple-400 mx-auto mb-1" />
                     <p className="text-lg font-bold">
-                      {featured.currentParticipants}/{featured.maxParticipants || "∞"}
+                      {featured.currentParticipants}/{featured.maxParticipants || "\u221E"}
                     </p>
-                    <p className="text-xs text-muted-foreground">Players</p>
+                    <p className="text-xs text-muted-foreground">{t.contests.players}</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-secondary/50">
                     <Clock className="h-5 w-5 text-green-400 mx-auto mb-1" />
-                    <p className="text-lg font-bold">{featured.duration}m</p>
-                    <p className="text-xs text-muted-foreground">Duration</p>
+                    <p className="text-lg font-bold">{featured.duration}{t.contests.minutes}</p>
+                    <p className="text-xs text-muted-foreground">{t.contests.duration}</p>
                   </div>
                 </div>
 
@@ -153,12 +159,12 @@ export default function ContestsPage() {
                   <Link href={`/contests/${featured.slug}`}>
                     <Button size="lg">
                       <Swords className="h-5 w-5 mr-2" />
-                      View Contest
+                      {t.contests.viewContest}
                       <ArrowUpRight className="h-4 w-4 ml-2" />
                     </Button>
                   </Link>
                   <p className="text-xs text-muted-foreground">
-                    {featured.commission}% platform commission
+                    {featured.commission}% {t.contests.platformCommission}
                   </p>
                 </div>
               </CardContent>
@@ -190,12 +196,12 @@ export default function ContestsPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <Zap className="h-4 w-4 text-primary" />
-                        <span>${contest.entryFee} entry</span>
+                        <span>${contest.entryFee} {t.contests.entryFee}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-purple-400" />
                         <span>
-                          {contest.currentParticipants}/{contest.maxParticipants || "∞"}
+                          {contest.currentParticipants}/{contest.maxParticipants || "\u221E"}
                         </span>
                       </div>
                     </div>
@@ -223,9 +229,9 @@ export default function ContestsPage() {
             <Card className="glass">
               <CardContent className="p-12 text-center">
                 <Swords className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Contests Found</h3>
+                <h3 className="text-lg font-semibold mb-2">{t.contests.noContestsFound}</h3>
                 <p className="text-muted-foreground">
-                  {filter !== "all" ? "Try a different filter." : "Contests will appear here once created."}
+                  {filter !== "all" ? t.contests.tryDifferentFilter : t.contests.contestsWillAppear}
                 </p>
               </CardContent>
             </Card>

@@ -17,9 +17,11 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { getRankColor } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const user = session?.user;
 
   const xpForNextLevel = (user?.level || 1) * 500;
@@ -27,33 +29,33 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      label: "Total XP",
+      label: t.dashboard.totalXP,
       value: (user?.xp || 0).toLocaleString(),
-      change: `Level ${user?.level || 1}`,
+      change: `${t.dashboard.rank} ${user?.level || 1}`,
       icon: Zap,
       color: "text-cyan-400",
       bg: "bg-cyan-400/10",
     },
     {
-      label: "Balance",
+      label: t.dashboard.balance,
       value: `$${(user?.balance || 0).toFixed(2)}`,
-      change: "USDT available",
+      change: t.dashboard.balanceInfo,
       icon: Target,
       color: "text-green-400",
       bg: "bg-green-400/10",
     },
     {
-      label: "Total Earned",
+      label: t.dashboard.totalEarned,
       value: `$${(user?.totalEarned || 0).toFixed(2)}`,
-      change: "All time",
+      change: t.dashboard.totalEarnedInfo,
       icon: TrendingUp,
       color: "text-purple-400",
       bg: "bg-purple-400/10",
     },
     {
-      label: "Account",
-      value: user?.isPremium ? "Premium" : "Free",
-      change: user?.isPremium ? "Active subscription" : "Upgrade available",
+      label: t.dashboard.account,
+      value: user?.isPremium ? t.dashboard.accountPremium : t.dashboard.accountFree,
+      change: user?.isPremium ? t.dashboard.accountPremiumActive : t.dashboard.accountFreeUpgrade,
       icon: Crown,
       color: "text-yellow-400",
       bg: "bg-yellow-400/10",
@@ -65,10 +67,10 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">
-          Welcome, <span className="neon-text">{user?.displayName || user?.username || "Hacker"}</span>
+          {t.dashboard.welcome}, <span className="neon-text">{user?.displayName || user?.username || "Hacker"}</span>
         </h1>
         <p className="text-muted-foreground mt-1">
-          Your ethical hacking dashboard. Start solving challenges to earn XP and climb the ranks.
+          {t.dashboard.subtitle}
         </p>
       </div>
 
@@ -81,15 +83,15 @@ export default function DashboardPage() {
                 <Zap className="h-6 w-6 text-cyan-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Current Level</p>
-                <p className="text-2xl font-bold neon-text">Level {user?.level || 1}</p>
+                <p className="text-sm text-muted-foreground">{t.dashboard.currentLevel}</p>
+                <p className="text-2xl font-bold neon-text">{t.dashboard.rank} {user?.level || 1}</p>
               </div>
             </div>
-            <Badge variant="neon">{user?.rank || "BRONZE"} Rank</Badge>
+            <Badge variant="neon">{user?.rank || "BRONZE"}</Badge>
           </div>
           <Progress value={xpProgress} className="h-2" />
           <p className="text-xs text-muted-foreground mt-2">
-            {(user?.xp || 0).toLocaleString()} / {xpForNextLevel.toLocaleString()} XP to Level {(user?.level || 1) + 1}
+            {(user?.xp || 0).toLocaleString()} / {xpForNextLevel.toLocaleString()} {t.dashboard.xpToNext} {(user?.level || 1) + 1}
           </p>
         </CardContent>
       </Card>
@@ -121,7 +123,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              Quick Actions
+              {t.dashboard.quickActions}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -132,8 +134,8 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <Target className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="text-sm font-medium">Browse Challenges</p>
-                  <p className="text-xs text-muted-foreground">Start earning XP</p>
+                  <p className="text-sm font-medium">{t.dashboard.browseChallenges}</p>
+                  <p className="text-xs text-muted-foreground">{t.dashboard.browseChallengesSub}</p>
                 </div>
               </div>
               <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -145,8 +147,8 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <Swords className="h-5 w-5 text-purple-400" />
                 <div>
-                  <p className="text-sm font-medium">Active Contests</p>
-                  <p className="text-xs text-muted-foreground">Compete for USDT prizes</p>
+                  <p className="text-sm font-medium">{t.dashboard.activeContests}</p>
+                  <p className="text-xs text-muted-foreground">{t.dashboard.activeContestsSub}</p>
                 </div>
               </div>
               <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-purple-400 transition-colors" />
@@ -159,8 +161,8 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <Crown className="h-5 w-5 text-yellow-400" />
                   <div>
-                    <p className="text-sm font-medium">Upgrade to Premium</p>
-                    <p className="text-xs text-muted-foreground">Unlock exclusive challenges</p>
+                    <p className="text-sm font-medium">{t.dashboard.upgradePremium}</p>
+                    <p className="text-xs text-muted-foreground">{t.dashboard.upgradePremiumSub}</p>
                   </div>
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-yellow-400 transition-colors" />
@@ -174,7 +176,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
-              Recent Activity
+              {t.dashboard.recentActivity}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -182,16 +184,16 @@ export default function DashboardPage() {
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
                 <div>
-                  <p className="text-sm">Welcome to ARKANUM!</p>
-                  <p className="text-xs text-muted-foreground">Just now</p>
+                  <p className="text-sm">{t.dashboard.welcomeMsg}</p>
+                  <p className="text-xs text-muted-foreground">{t.dashboard.justNow}</p>
                 </div>
               </div>
               {user?.isPremium && (
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-yellow-400 mt-2 shrink-0" />
                   <div>
-                    <p className="text-sm">Premium subscription active</p>
-                    <p className="text-xs text-muted-foreground">2x XP multiplier enabled</p>
+                    <p className="text-sm">{t.dashboard.premiumActive}</p>
+                    <p className="text-xs text-muted-foreground">{t.dashboard.premiumXp}</p>
                   </div>
                 </div>
               )}

@@ -36,6 +36,7 @@ model User {
 
   contestEntries      ContestEntry[]
   lessonProgress      LessonProgress[]
+  challengeProgress   ChallengeProgress[]
   payments            Payment[]
   withdrawals         Withdrawal[]
   notifications       Notification[]
@@ -80,7 +81,8 @@ model LearningPath {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  lessons Lesson[]
+  lessons     Lesson[]
+  challenges  Challenge[]
 
   @@index([sortOrder])
   @@map("learning_paths")
@@ -109,6 +111,55 @@ model Lesson {
   @@unique([learningPathId, slug])
   @@index([learningPathId, sortOrder])
   @@map("lessons")
+}
+
+// ===========================
+// CHALLENGES (Standalone puzzles)
+// ===========================
+
+model Challenge {
+  id            String      @id @default(cuid())
+  title         String
+  slug          String      @unique
+  description   String
+  content       String?
+  difficulty    Difficulty
+  category      String
+  points        Int         @default(100)
+  xpReward      Int         @default(50) @map("xp_reward")
+  timeLimitMin  Int?        @map("time_limit_min")
+  entryFee      Float       @default(0) @map("entry_fee")
+  isFree        Boolean     @default(true) @map("is_free")
+  isPublished   Boolean     @default(true) @map("is_published")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  learningPathId String?    @map("learning_path_id")
+  learningPath   LearningPath? @relation(fields: [learningPathId], references: [id])
+  progress       ChallengeProgress[]
+
+  @@index([difficulty])
+  @@index([category])
+  @@map("challenges")
+}
+
+model ChallengeProgress {
+  id          String         @id @default(cuid())
+  userId      String         @map("user_id")
+  challengeId String         @map("challenge_id")
+  status      ProgressStatus @default(IN_PROGRESS)
+  score       Int            @default(0)
+  attempts    Int            @default(0)
+  completedAt DateTime?      @map("completed_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+  @@map("challenge_progress")
 }
 
 model LessonProgress {

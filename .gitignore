@@ -8,3 +8,4 @@ prisma/migrations/
 dist/
 *.tsbuildinfo
 docker/data/
+next-env.d.ts

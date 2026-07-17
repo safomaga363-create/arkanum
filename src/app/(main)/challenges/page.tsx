@@ -10,22 +10,12 @@ import {
   Zap,
   Target,
   Search,
-  Filter,
   Lock,
   ArrowUpRight,
   Clock,
 } from "lucide-react";
 import { getDifficultyColor } from "@/lib/utils";
-
-const categories = [
-  "All",
-  "Web Security",
-  "Cryptography",
-  "Binary Exploitation",
-  "Reverse Engineering",
-  "Forensics",
-  "Networking",
-];
+import { useI18n } from "@/lib/i18n/context";
 
 interface Challenge {
   id: string;
@@ -49,6 +39,17 @@ export default function ChallengesPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const { t } = useI18n();
+
+  const categories = [
+    t.challenges.allCategories,
+    t.challenges.webSecurity,
+    t.challenges.cryptography,
+    t.challenges.binaryExploitation,
+    t.challenges.reverseEngineering,
+    t.challenges.forensics,
+    t.challenges.networking,
+  ];
 
   useEffect(() => {
     setLoading(true);
@@ -56,7 +57,7 @@ export default function ChallengesPage() {
       page: page.toString(),
       pageSize: "24",
     });
-    if (selectedCategory !== "All") params.set("category", selectedCategory);
+    if (selectedCategory !== t.challenges.allCategories) params.set("category", selectedCategory);
     if (search) params.set("search", search);
 
     fetch(`/api/challenges?${params}`)
@@ -68,16 +69,16 @@ export default function ChallengesPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [selectedCategory, search, page]);
+  }, [selectedCategory, search, page, t.challenges.allCategories]);
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">
-          <span className="neon-text">Challenges</span>
+          <span className="neon-text">{t.challenges.title}</span>
         </h1>
         <p className="text-muted-foreground mt-1">
-          Sharpen your skills with real-world cybersecurity challenges.
+          {t.challenges.subtitle}
         </p>
       </div>
 
@@ -86,7 +87,7 @@ export default function ChallengesPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search challenges..."
+            placeholder={t.challenges.searchPlaceholder}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -130,9 +131,9 @@ export default function ChallengesPage() {
         <Card className="glass">
           <CardContent className="p-12 text-center">
             <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Challenges Found</h3>
+            <h3 className="text-lg font-semibold mb-2">{t.challenges.noChallengesFound}</h3>
             <p className="text-muted-foreground">
-              {search ? "Try a different search term." : "Challenges will appear here once created."}
+              {search ? t.challenges.tryDifferentSearch : t.challenges.challengesWillAppear}
             </p>
           </CardContent>
         </Card>
@@ -171,7 +172,7 @@ export default function ChallengesPage() {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
                     <div className="flex items-center gap-1">
                       <Target className="h-3 w-3" />
-                      {challenge.points} pts
+                      {challenge.points} {t.challenges.points}
                     </div>
                     <div className="flex items-center gap-1">
                       <Zap className="h-3 w-3 text-cyan-400" />
@@ -207,10 +208,10 @@ export default function ChallengesPage() {
             disabled={page <= 1}
             onClick={() => setPage(page - 1)}
           >
-            Previous
+            {t.challenges.previous}
           </Button>
           <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t.common.page} {page} {t.common.of} {totalPages}
           </span>
           <Button
             variant="outline"
@@ -218,7 +219,7 @@ export default function ChallengesPage() {
             disabled={page >= totalPages}
             onClick={() => setPage(page + 1)}
           >
-            Next
+            {t.challenges.next}
           </Button>
         </div>
       )}

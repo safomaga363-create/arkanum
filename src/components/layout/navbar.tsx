@@ -12,19 +12,21 @@ import {
   X,
   User,
   Crown,
-  BookOpen,
 } from "lucide-react";
-
-const navLinks = [
-  { href: "/challenges", label: "Challenges", icon: Zap },
-  { href: "/contests", label: "Contests", icon: Swords },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/premium", label: "Premium", icon: Crown },
-];
+import { useI18n } from "@/lib/i18n/context";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggedIn] = useState(false);
+  const { t } = useI18n();
+
+  const navLinks = [
+    { href: "/challenges", label: t.nav.challenges, icon: Zap },
+    { href: "/contests", label: t.nav.contests, icon: Swords },
+    { href: "/leaderboard", label: t.nav.leaderboard, icon: Trophy },
+    { href: "/premium", label: t.nav.premium, icon: Crown },
+  ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
@@ -59,24 +61,25 @@ export function Navbar() {
 
           {/* Auth buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher />
             {isLoggedIn ? (
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
                   <User className="h-4 w-4" />
-                  Dashboard
+                  {t.nav.dashboard}
                 </Button>
               </Link>
             ) : (
               <>
                 <Link href="/login">
                   <Button variant="ghost" size="sm">
-                    Sign In
+                    {t.auth.login}
                   </Button>
                 </Link>
                 <Link href="/register">
                   <Button size="sm">
                     <Zap className="h-4 w-4" />
-                    Get Started
+                    {t.landing.getStarted}
                   </Button>
                 </Link>
               </>
@@ -109,15 +112,18 @@ export function Navbar() {
               </Link>
             ))}
             <div className="pt-2 border-t border-border">
+              <div className="px-3 pb-2">
+                <LanguageSwitcher />
+              </div>
               <Link href="/login" className="block" onClick={() => setMobileOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">
-                  Sign In
+                  {t.auth.login}
                 </Button>
               </Link>
               <Link href="/register" className="block mt-2" onClick={() => setMobileOpen(false)}>
                 <Button className="w-full">
                   <Zap className="h-4 w-4" />
-                  Get Started
+                  {t.landing.getStarted}
                 </Button>
               </Link>
             </div>

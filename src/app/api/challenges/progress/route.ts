@@ -4,12 +4,12 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const progressSchema = z.object({
-  lessonId: z.string(),
-  action: z.enum(["start", "complete", "skip"]),
+  challengeId: z.string(),
+  action: z.enum(["start", "submit", "skip"]),
   score: z.number().optional(),
 });
 
-// Get user's lesson progress
+// Get user's challenge progress
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
@@ -21,43 +21,27 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const lessonId = searchParams.get("lessonId");
-    const learningPathId = searchParams.get("learningPathId");
+    const challengeId = searchParams.get("challengeId");
 
-    if (lessonId) {
-      const progress = await prisma.lessonProgress.findUnique({
-        where: {
-          userId_lessonId: {
-            userId: session.user.id,
-            lessonId,
-          },
-        },
-      });
-      return NextResponse.json({ success: true, data: progress });
+    if (!challengeId) {
+      return NextResponse.json(
+        { success: false, error: "challengeId required" },
+        { status: 400 }
+      );
     }
 
-    if (learningPathId) {
-      const allProgress = await prisma.lessonProgress.findMany({
-        where: {
+    const progress = await prisma.challengeProgress.findUnique({
+      where: {
+        userId_challengeId: {
           userId: session.user.id,
-          lesson: { learningPathId },
+          challengeId,
         },
-        select: {
-          lessonId: true,
-          status: true,
-          score: true,
-          completedAt: true,
-        },
-      });
-      return NextResponse.json({ success: true, data: allProgress });
-    }
+      },
+    });
 
-    return NextResponse.json(
-      { success: false, error: "lessonId or learningPathId required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ success: true, data: progress });
   } catch (error) {
-    console.error("Get lesson progress error:", error);
+    console.error("Get challenge progress error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }
@@ -65,7 +49,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Start, complete, or skip a lesson
+// Start, submit, or skip a challenge
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -79,13 +63,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = progressSchema.parse(body);
 
-    const lesson = await prisma.lesson.findUnique({
-      where: { id: data.lessonId },
+    const challenge = await prisma.challenge.findUnique({
+      where: { id: data.challengeId },
     });
 
-    if (!lesson) {
+    if (!challenge) {
       return NextResponse.json(
-        { success: false, error: "Lesson not found" },
+        { success: false, error: "Challenge not found" },
         { status: 404 }
       );
     }
@@ -93,16 +77,16 @@ export async function POST(req: NextRequest) {
     const userId = session.user.id;
 
     if (data.action === "start") {
-      const progress = await prisma.lessonProgress.upsert({
+      const progress = await prisma.challengeProgress.upsert({
         where: {
-          userId_lessonId: {
+          userId_challengeId: {
             userId,
-            lessonId: data.lessonId,
+            challengeId: data.challengeId,
           },
         },
         create: {
           userId,
-          lessonId: data.lessonId,
+          challengeId: data.challengeId,
           status: "IN_PROGRESS",
           attempts: 1,
         },
@@ -115,19 +99,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, data: progress });
     }
 
-    if (data.action === "complete") {
+    if (data.action === "submit") {
       const score = data.score || 100;
 
-      const progress = await prisma.lessonProgress.upsert({
+      const progress = await prisma.challengeProgress.upsert({
         where: {
-          userId_lessonId: {
+          userId_challengeId: {
             userId,
-            lessonId: data.lessonId,
+            challengeId: data.challengeId,
           },
         },
         create: {
           userId,
-          lessonId: data.lessonId,
+          challengeId: data.challengeId,
           status: "SOLVED",
           score,
           attempts: 1,
@@ -141,28 +125,36 @@ export async function POST(req: NextRequest) {
       });
 
       // Award XP
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { xp: true, isPremium: true },
+      });
+
+      const xpMultiplier = user?.isPremium ? 2 : 1;
+      const xpReward = challenge.xpReward * xpMultiplier;
+
       await prisma.user.update({
         where: { id: userId },
         data: {
-          xp: { increment: lesson.xpReward },
+          xp: { increment: xpReward },
         },
       });
 
-      // Recalculate level
-      const user = await prisma.user.findUnique({
+      // Recalculate level and rank
+      const updatedUser = await prisma.user.findUnique({
         where: { id: userId },
         select: { xp: true },
       });
 
-      if (user) {
-        const newLevel = Math.floor(user.xp / 500) + 1;
+      if (updatedUser) {
+        const newLevel = Math.floor(updatedUser.xp / 500) + 1;
         let newRank: string = "BRONZE";
-        if (user.xp >= 250000) newRank = "LEGENDARY";
-        else if (user.xp >= 100000) newRank = "MASTER";
-        else if (user.xp >= 50000) newRank = "DIAMOND";
-        else if (user.xp >= 15000) newRank = "PLATINUM";
-        else if (user.xp >= 5000) newRank = "GOLD";
-        else if (user.xp >= 1000) newRank = "SILVER";
+        if (updatedUser.xp >= 250000) newRank = "LEGENDARY";
+        else if (updatedUser.xp >= 100000) newRank = "MASTER";
+        else if (updatedUser.xp >= 50000) newRank = "DIAMOND";
+        else if (updatedUser.xp >= 15000) newRank = "PLATINUM";
+        else if (updatedUser.xp >= 5000) newRank = "GOLD";
+        else if (updatedUser.xp >= 1000) newRank = "SILVER";
 
         await prisma.user.update({
           where: { id: userId },
@@ -173,21 +165,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         data: progress,
-        message: `Lesson completed! +${lesson.xpReward} XP`,
+        message: `Challenge solved! +${xpReward} XP${xpMultiplier > 1 ? " (2x Premium bonus!)" : ""}`,
       });
     }
 
     if (data.action === "skip") {
-      const progress = await prisma.lessonProgress.upsert({
+      const progress = await prisma.challengeProgress.upsert({
         where: {
-          userId_lessonId: {
+          userId_challengeId: {
             userId,
-            lessonId: data.lessonId,
+            challengeId: data.challengeId,
           },
         },
         create: {
           userId,
-          lessonId: data.lessonId,
+          challengeId: data.challengeId,
           status: "SKIPPED",
         },
         update: {
@@ -209,7 +201,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    console.error("Lesson progress error:", error);
+    console.error("Challenge progress error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import {
   BookOpen,
   ArrowRight,
-  Zap,
   Target,
 } from "lucide-react";
 import { getDifficultyColor } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 interface LearningPath {
   id: string;
@@ -21,12 +21,13 @@ interface LearningPath {
   icon: string | null;
   color: string;
   difficulty: string;
-  _count: { challenges: number };
+  _count: { lessons: number };
 }
 
 export default function LearningPathsPage() {
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/learning-paths")
@@ -41,10 +42,10 @@ export default function LearningPathsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">
-          <span className="neon-text">Learning Paths</span>
+          <span className="neon-text">{t.learning.title}</span>
         </h1>
         <p className="text-muted-foreground mt-1">
-          Structured courses from beginner to expert. Master each domain step by step.
+          {t.learning.subtitle}
         </p>
       </div>
 
@@ -91,11 +92,11 @@ export default function LearningPathsPage() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Target className="h-3 w-3" />
-                        {path._count.lessons} lessons
+                        {path._count.lessons} {t.learning.lessonsCount}
                       </div>
                     </div>
                     <Button variant="ghost" size="sm">
-                      Start
+                      {t.learning.start}
                       <ArrowRight className="h-3 w-3 ml-1" />
                     </Button>
                   </div>
@@ -110,9 +111,9 @@ export default function LearningPathsPage() {
         <Card className="glass">
           <CardContent className="p-12 text-center">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Learning Paths Yet</h3>
+            <h3 className="text-lg font-semibold mb-2">{t.learning.noPaths}</h3>
             <p className="text-muted-foreground">
-              Learning paths will appear here once created by the admin.
+              {t.learning.noPathsDesc}
             </p>
           </CardContent>
         </Card>

@@ -67,15 +67,22 @@ export default function LearningPathDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/learning-paths/${params.slug}`).then((r) => r.json()),
-      session?.user?.id
-        ? fetch(`/api/lessons/progress?learningPathId=${params.slug}`).then((r) => r.json())
-        : Promise.resolve({ success: false }),
-    ]).then(([pathData, progressData]) => {
-      if (pathData.success) setPath(pathData.data);
-      if (progressData.success) setProgress(progressData.data);
-    }).finally(() => setLoading(false));
+    setLoading(true);
+    fetch(`/api/learning-paths/${params.slug}`)
+      .then((r) => r.json())
+      .then((pathData) => {
+        if (pathData.success) {
+          setPath(pathData.data);
+          if (session?.user?.id && pathData.data?.id) {
+            fetch(`/api/lessons/progress?learningPathId=${pathData.data.id}`)
+              .then((r) => r.json())
+              .then((progressData) => {
+                if (progressData.success) setProgress(progressData.data);
+              });
+          }
+        }
+      })
+      .finally(() => setLoading(false));
   }, [params.slug, session?.user?.id]);
 
   if (loading) {

@@ -10,15 +10,16 @@ import {
   User,
   Settings,
   Shield,
-  Clock,
   Edit3,
   LogOut,
   Mail,
 } from "lucide-react";
 import { getRankColor } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function ProfilePage() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const user = session?.user;
   const rankColor = user?.rank ? getRankColor(user.rank) : "#00f0ff";
 
@@ -26,10 +27,10 @@ export default function ProfilePage() {
     <div className="space-y-8 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold">
-          Profile <span className="neon-text">Settings</span>
+          {t.profile.title} <span className="neon-text">{t.profile.settings}</span>
         </h1>
         <p className="text-muted-foreground mt-1">
-          Manage your account settings and preferences.
+          {t.profile.subtitle}
         </p>
       </div>
 
@@ -46,7 +47,7 @@ export default function ProfilePage() {
             <h2 className="text-xl font-bold">{user?.displayName || user?.username || "User"}</h2>
             <p className="text-sm text-muted-foreground">@{user?.username || "username"}</p>
             <Badge variant="neon" className="mt-2">
-              {user?.rank || "BRONZE"} Rank
+              {user?.rank || "BRONZE"}
             </Badge>
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -55,7 +56,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Settings className="h-4 w-4" />
-                Level {user?.level || 1} · {(user?.xp || 0).toLocaleString()} XP
+                {t.profile.level} {user?.level || 1} · {(user?.xp || 0).toLocaleString()} XP
               </div>
             </div>
           </CardContent>
@@ -67,31 +68,31 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-primary" />
-                Edit Profile
+                {t.profile.editProfile}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Display Name</label>
-                  <Input placeholder={user?.displayName || "Your display name"} />
+                  <label className="text-sm font-medium">{t.profile.displayName}</label>
+                  <Input placeholder={user?.displayName || ""} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Username</label>
-                  <Input placeholder={user?.username || "username"} disabled />
+                  <label className="text-sm font-medium">{t.profile.username}</label>
+                  <Input placeholder={user?.username || ""} disabled />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Bio</label>
-                <Input placeholder="Tell us about yourself..." />
+                <label className="text-sm font-medium">{t.profile.bio}</label>
+                <Input placeholder={t.profile.bioPlaceholder} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Website</label>
-                <Input placeholder="https://yourwebsite.com" />
+                <label className="text-sm font-medium">{t.profile.website}</label>
+                <Input placeholder={t.profile.websitePlaceholder} />
               </div>
               <Button>
                 <Settings className="h-4 w-4 mr-2" />
-                Save Changes
+                {t.profile.saveChanges}
               </Button>
             </CardContent>
           </Card>
@@ -100,27 +101,27 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                Security
+                {t.profile.security}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Current Password</label>
-                <Input type="password" placeholder="Enter current password" />
+                <label className="text-sm font-medium">{t.profile.currentPassword}</label>
+                <Input type="password" placeholder={t.profile.currentPasswordPlaceholder} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">New Password</label>
-                  <Input type="password" placeholder="New password" />
+                  <label className="text-sm font-medium">{t.profile.newPassword}</label>
+                  <Input type="password" placeholder={t.profile.newPasswordPlaceholder} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Confirm Password</label>
-                  <Input type="password" placeholder="Confirm new password" />
+                  <label className="text-sm font-medium">{t.profile.confirmPassword}</label>
+                  <Input type="password" placeholder={t.profile.confirmPasswordPlaceholder} />
                 </div>
               </div>
               <Button variant="outline">
                 <Shield className="h-4 w-4 mr-2" />
-                Update Password
+                {t.profile.updatePassword}
               </Button>
             </CardContent>
           </Card>
@@ -129,12 +130,12 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-400">
                 <LogOut className="h-5 w-5" />
-                Sign Out
+                {t.profile.signOut}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Button variant="destructive" onClick={() => signOut({ callbackUrl: "/" })}>
-                Sign Out of All Devices
+                {t.profile.signOutDesc}
               </Button>
             </CardContent>
           </Card>

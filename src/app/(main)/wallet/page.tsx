@@ -15,14 +15,15 @@ import {
   CheckCircle,
   XCircle,
   Copy,
-  ExternalLink,
   Loader2,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 const OWNER_WALLET = process.env.NEXT_PUBLIC_OWNER_USDT_WALLET || "TXyz123...abc";
 
 export default function WalletPage() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const user = session?.user;
 
   const [depositAmount, setDepositAmount] = useState("");
@@ -62,7 +63,7 @@ export default function WalletPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
+        alert(t.wallet.depositSubmitted);
         setDepositAmount("");
         setDepositTxHash("");
         window.location.reload();
@@ -89,7 +90,7 @@ export default function WalletPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert(data.message);
+        alert(t.wallet.withdrawalRequested);
         setWithdrawAmount("");
         setWithdrawWallet("");
         window.location.reload();
@@ -109,10 +110,10 @@ export default function WalletPage() {
     <div className="space-y-8 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold">
-          <span className="neon-text">Wallet</span>
+          <span className="neon-text">{t.wallet.title}</span>
         </h1>
         <p className="text-muted-foreground mt-1">
-          Manage your USDT balance. Deposit, withdraw, and track transactions.
+          {t.wallet.subtitle}
         </p>
       </div>
 
@@ -121,7 +122,7 @@ export default function WalletPage() {
         <CardContent className="p-8">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Available Balance</p>
+              <p className="text-sm text-muted-foreground mb-1">{t.wallet.availableBalance}</p>
               <p className="text-4xl font-bold neon-text">
                 ${(user?.balance || 0).toFixed(2)}
               </p>
@@ -133,7 +134,7 @@ export default function WalletPage() {
           </div>
           <div className="flex gap-4 mt-6 text-sm">
             <div>
-              <span className="text-muted-foreground">Total Earned: </span>
+              <span className="text-muted-foreground">{t.wallet.totalEarned}: </span>
               <span className="font-medium text-green-400">${(user?.totalEarned || 0).toFixed(2)}</span>
             </div>
           </div>
@@ -145,15 +146,15 @@ export default function WalletPage() {
         <TabsList>
           <TabsTrigger value="deposit">
             <ArrowDownToLine className="h-4 w-4 mr-2" />
-            Deposit
+            {t.wallet.deposit}
           </TabsTrigger>
           <TabsTrigger value="withdraw">
             <ArrowUpFromLine className="h-4 w-4 mr-2" />
-            Withdraw
+            {t.wallet.withdraw}
           </TabsTrigger>
           <TabsTrigger value="history">
             <Clock className="h-4 w-4 mr-2" />
-            History
+            {t.wallet.history}
           </TabsTrigger>
         </TabsList>
 
@@ -161,11 +162,11 @@ export default function WalletPage() {
         <TabsContent value="deposit" className="mt-6">
           <Card className="glass">
             <CardHeader>
-              <CardTitle>Deposit USDT (TRC20)</CardTitle>
+              <CardTitle>{t.wallet.depositUsdt}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                <p className="text-sm font-medium mb-2">Send USDT to this address:</p>
+                <p className="text-sm font-medium mb-2">{t.wallet.sendTo}</p>
                 <div className="flex items-center gap-2">
                   <code className="text-sm font-mono text-primary flex-1 break-all">
                     {OWNER_WALLET}
@@ -178,13 +179,13 @@ export default function WalletPage() {
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Only send USDT on the TRON (TRC20) network. Other networks will result in lost funds.
+                  {t.wallet.onlyTrc20}
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Amount (USDT)</label>
+                  <label className="text-sm font-medium">{t.wallet.amount}</label>
                   <Input
                     type="number"
                     placeholder="e.g. 50"
@@ -194,14 +195,14 @@ export default function WalletPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Transaction Hash</label>
+                  <label className="text-sm font-medium">{t.wallet.txHash}</label>
                   <Input
-                    placeholder="Paste your TRC20 transaction hash"
+                    placeholder={t.wallet.txHashPlaceholder}
                     value={depositTxHash}
                     onChange={(e) => setDepositTxHash(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Find this in your wallet app after sending. It starts with "a" or "0x".
+                    {t.wallet.txHashHint}
                   </p>
                 </div>
                 <Button
@@ -213,7 +214,7 @@ export default function WalletPage() {
                   ) : (
                     <ArrowDownToLine className="h-4 w-4 mr-2" />
                   )}
-                  Submit Deposit
+                  {t.wallet.submitDeposit}
                 </Button>
               </div>
             </CardContent>
@@ -224,15 +225,15 @@ export default function WalletPage() {
         <TabsContent value="withdraw" className="mt-6">
           <Card className="glass">
             <CardHeader>
-              <CardTitle>Withdraw USDT</CardTitle>
+              <CardTitle>{t.wallet.withdrawUsdt}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20 text-sm text-yellow-400">
-                Minimum withdrawal: $10 USDT. Fee: 1%. Processing within 24 hours.
+                {t.wallet.minWithdrawal}
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Amount (USDT)</label>
+                <label className="text-sm font-medium">{t.wallet.amount}</label>
                 <Input
                   type="number"
                   placeholder={`Max: $${(user?.balance || 0).toFixed(2)}`}
@@ -244,9 +245,9 @@ export default function WalletPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">TRC20 Wallet Address</label>
+                <label className="text-sm font-medium">{t.wallet.walletAddress}</label>
                 <Input
-                  placeholder="Your TRC20 wallet address"
+                  placeholder={t.wallet.walletAddressPlaceholder}
                   value={withdrawWallet}
                   onChange={(e) => setWithdrawWallet(e.target.value)}
                 />
@@ -255,15 +256,15 @@ export default function WalletPage() {
               {withdrawAmount && (
                 <div className="p-3 rounded-lg bg-secondary/50 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="text-muted-foreground">{t.wallet.amountLabel}</span>
                     <span>${parseFloat(withdrawAmount || "0").toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Fee (1%):</span>
+                    <span className="text-muted-foreground">{t.wallet.fee}</span>
                     <span>${(parseFloat(withdrawAmount || "0") * 0.01).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-medium mt-1 pt-1 border-t border-border">
-                    <span>You receive:</span>
+                    <span>{t.wallet.youReceive}</span>
                     <span className="neon-text">
                       ${(parseFloat(withdrawAmount || "0") * 0.99).toFixed(2)} USDT
                     </span>
@@ -280,7 +281,7 @@ export default function WalletPage() {
                 ) : (
                   <ArrowUpFromLine className="h-4 w-4 mr-2" />
                 )}
-                Request Withdrawal
+                {t.wallet.requestWithdrawal}
               </Button>
             </CardContent>
           </Card>
@@ -292,7 +293,7 @@ export default function WalletPage() {
             {/* Payments */}
             <Card className="glass">
               <CardHeader>
-                <CardTitle className="text-lg">Transactions</CardTitle>
+                <CardTitle className="text-lg">{t.wallet.transactions}</CardTitle>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -302,7 +303,7 @@ export default function WalletPage() {
                     ))}
                   </div>
                 ) : payments.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No transactions yet</p>
+                  <p className="text-muted-foreground text-center py-8">{t.wallet.noTransactions}</p>
                 ) : (
                   <div className="space-y-2">
                     {payments.map((p) => (
@@ -343,11 +344,11 @@ export default function WalletPage() {
             {/* Withdrawals */}
             <Card className="glass">
               <CardHeader>
-                <CardTitle className="text-lg">Withdrawals</CardTitle>
+                <CardTitle className="text-lg">{t.wallet.withdrawals}</CardTitle>
               </CardHeader>
               <CardContent>
                 {withdrawals.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No withdrawals yet</p>
+                  <p className="text-muted-foreground text-center py-8">{t.wallet.noWithdrawals}</p>
                 ) : (
                   <div className="space-y-2">
                     {withdrawals.map((w) => (
@@ -363,13 +364,13 @@ export default function WalletPage() {
                           <div>
                             <p className="text-sm font-medium">{w.wallet}</p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(w.createdAt).toLocaleDateString()} · Fee: ${w.fee.toFixed(2)}
+                              {new Date(w.createdAt).toLocaleDateString()} · {t.wallet.fee1pct} ${w.fee.toFixed(2)}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-red-400">-${w.amount.toFixed(2)}</p>
-                          <p className="text-xs text-green-400">Net: ${w.netAmount.toFixed(2)}</p>
+                          <p className="text-xs text-green-400">{t.wallet.net} ${w.netAmount.toFixed(2)}</p>
                         </div>
                       </div>
                     ))}

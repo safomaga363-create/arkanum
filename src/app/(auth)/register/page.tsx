@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Eye, EyeOff, Zap, Loader2, Check } from "lucide-react";
+import { useI18n } from "@/lib/i18n/context";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [form, setForm] = useState({
     email: "",
     username: "",
@@ -23,9 +25,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   const passwordChecks = [
-    { label: "At least 8 characters", valid: form.password.length >= 8 },
-    { label: "One uppercase letter", valid: /[A-Z]/.test(form.password) },
-    { label: "One number", valid: /[0-9]/.test(form.password) },
+    { label: t.auth.passwordChecks.minLength, valid: form.password.length >= 8 },
+    { label: t.auth.passwordChecks.uppercase, valid: /[A-Z]/.test(form.password) },
+    { label: t.auth.passwordChecks.number, valid: /[0-9]/.test(form.password) },
   ];
 
   async function handleSubmit(e: React.FormEvent) {
@@ -33,7 +35,7 @@ export default function RegisterPage() {
     setError("");
 
     if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
+      setError(t.validation.passwordsNoMatch);
       return;
     }
 
@@ -55,13 +57,13 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
+        setError(data.error || t.validation.registrationFailed);
         return;
       }
 
       router.push("/login?registered=true");
     } catch {
-      setError("An error occurred. Please try again.");
+      setError(t.validation.errorOccurred);
     } finally {
       setLoading(false);
     }
@@ -88,9 +90,9 @@ export default function RegisterPage() {
 
         <Card className="glass-strong">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Join ARKANUM</CardTitle>
+            <CardTitle className="text-2xl">{t.auth.registerTitle}</CardTitle>
             <CardDescription>
-              Create your account and start hacking
+              {t.auth.registerSubtitle}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -102,10 +104,10 @@ export default function RegisterPage() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Email</label>
+                <label className="text-sm font-medium text-foreground">{t.auth.email}</label>
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.auth.emailPlaceholder}
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
@@ -113,9 +115,9 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Username</label>
+                <label className="text-sm font-medium text-foreground">{t.auth.username}</label>
                 <Input
-                  placeholder="Choose a username"
+                  placeholder={t.auth.usernamePlaceholder}
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
                   required
@@ -124,30 +126,30 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
-                  Display Name <span className="text-muted-foreground">(optional)</span>
+                  {t.auth.displayName} <span className="text-muted-foreground">({t.common.optional})</span>
                 </label>
                 <Input
-                  placeholder="How others will see you"
+                  placeholder={t.auth.displayNamePlaceholder}
                   value={form.displayName}
                   onChange={(e) => setForm({ ...form, displayName: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Country</label>
+                <label className="text-sm font-medium text-foreground">{t.auth.country}</label>
                 <Input
-                  placeholder="e.g. Tajikistan"
+                  placeholder={t.auth.countryPlaceholder}
                   value={form.country}
                   onChange={(e) => setForm({ ...form, country: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Password</label>
+                <label className="text-sm font-medium text-foreground">{t.auth.password}</label>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a strong password"
+                    placeholder={t.auth.passwordPlaceholder}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     required
@@ -179,10 +181,10 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Confirm Password</label>
+                <label className="text-sm font-medium text-foreground">{t.auth.confirmPassword}</label>
                 <Input
                   type="password"
-                  placeholder="Repeat your password"
+                  placeholder={t.auth.confirmPasswordPlaceholder}
                   value={form.confirmPassword}
                   onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                   required
@@ -190,9 +192,9 @@ export default function RegisterPage() {
               </div>
 
               <div className="text-xs text-muted-foreground">
-                By creating an account, you agree to our{" "}
-                <Link href="/terms" className="text-primary hover:underline">Terms</Link>
-                {" "}and confirm you are 18+ years old.
+                {t.auth.byCreatingAccount}{" "}
+                <Link href="/terms" className="text-primary hover:underline">{t.auth.terms}</Link>
+                {" "}{t.auth.andConfirm}
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
@@ -201,16 +203,16 @@ export default function RegisterPage() {
                 ) : (
                   <>
                     <Zap className="h-5 w-5" />
-                    Create Account
+                    {t.auth.register}
                   </>
                 )}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              {t.auth.hasAccount}{" "}
               <Link href="/login" className="text-primary hover:underline">
-                Sign in
+                {t.auth.login}
               </Link>
             </div>
           </CardContent>

@@ -8,12 +8,10 @@ import {
   Trophy,
   Crown,
   Medal,
-  ArrowUp,
-  ArrowDown,
-  Minus,
   Users,
 } from "lucide-react";
 import { getRankColor } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/context";
 
 interface Player {
   id: string;
@@ -42,6 +40,7 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const { t } = useI18n();
 
   useEffect(() => {
     setLoading(true);
@@ -57,16 +56,15 @@ export default function LeaderboardPage() {
   }, [page]);
 
   const top3 = players.slice(0, 3);
-  const rest = players.slice(3);
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">
-          <span className="neon-text-purple">Leaderboard</span>
+          <span className="neon-text-purple">{t.leaderboard.title}</span>
         </h1>
         <p className="text-muted-foreground mt-1">
-          Top ethical hackers ranked by XP and achievements.
+          {t.leaderboard.subtitle}
         </p>
       </div>
 
@@ -133,11 +131,11 @@ export default function LeaderboardPage() {
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-yellow-400" />
-                  Global Rankings
+                  {t.leaderboard.globalRankings}
                 </div>
                 <span className="text-sm font-normal text-muted-foreground">
                   <Users className="h-4 w-4 inline mr-1" />
-                  {total.toLocaleString()} players
+                  {total.toLocaleString()} {t.common.players}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -199,9 +197,9 @@ export default function LeaderboardPage() {
               {players.length === 0 && (
                 <div className="text-center py-12">
                   <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Players Yet</h3>
+                  <h3 className="text-lg font-semibold mb-2">{t.leaderboard.noPlayers}</h3>
                   <p className="text-muted-foreground">
-                    The leaderboard will populate as users join and earn XP.
+                    {t.leaderboard.noPlayersDesc}
                   </p>
                 </div>
               )}
@@ -216,17 +214,17 @@ export default function LeaderboardPage() {
                 disabled={page <= 1}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Previous
+                {t.common.previous}
               </button>
               <span className="text-sm text-muted-foreground">
-                Page {page} of {Math.ceil(total / 50)}
+                {t.common.page} {page} {t.common.of} {Math.ceil(total / 50)}
               </span>
               <button
                 onClick={() => setPage(page + 1)}
                 disabled={page >= Math.ceil(total / 50)}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                Next
+                {t.common.next}
               </button>
             </div>
           )}

@@ -23,17 +23,8 @@ import {
   Bell,
 } from "lucide-react";
 import { getRankColor } from "@/lib/utils";
-
-const sidebarLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/learning-paths", label: "Learning Paths", icon: BookOpen },
-  { href: "/challenges", label: "Challenges", icon: Zap },
-  { href: "/contests", label: "Contests", icon: Swords },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/premium", label: "Premium", icon: Crown },
-  { href: "/profile", label: "Profile", icon: Settings },
-];
+import { useI18n } from "@/lib/i18n/context";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 
 export default function MainLayout({
   children,
@@ -43,6 +34,7 @@ export default function MainLayout({
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = React.useState(false);
+  const { t } = useI18n();
 
   const user = session?.user;
   const userInitials = user?.displayName
@@ -51,6 +43,17 @@ export default function MainLayout({
     ? user.username.slice(0, 2).toUpperCase()
     : "A";
   const rankColor = user?.rank ? getRankColor(user.rank) : "#00f0ff";
+
+  const sidebarLinks = [
+    { href: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
+    { href: "/learning-paths", label: t.nav.learningPaths, icon: BookOpen },
+    { href: "/challenges", label: t.nav.challenges, icon: Zap },
+    { href: "/contests", label: t.nav.contests, icon: Swords },
+    { href: "/leaderboard", label: t.nav.leaderboard, icon: Trophy },
+    { href: "/wallet", label: t.nav.wallet, icon: Wallet },
+    { href: "/premium", label: t.nav.premium, icon: Crown },
+    { href: "/profile", label: t.nav.profile, icon: Settings },
+  ];
 
   return (
     <div className="min-h-screen flex">
@@ -103,6 +106,13 @@ export default function MainLayout({
           })}
         </nav>
 
+        {/* Language switcher */}
+        {!collapsed && (
+          <div className="px-3 pb-2">
+            <LanguageSwitcher className="w-full justify-center" />
+          </div>
+        )}
+
         {/* User section */}
         <div className="p-3 border-t border-border">
           <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
@@ -148,6 +158,7 @@ export default function MainLayout({
         <header className="sticky top-0 z-30 h-16 glass-strong border-b border-border flex items-center justify-between px-6">
           <div />
           <div className="flex items-center gap-3">
+            <LanguageSwitcher className="hidden md:flex" />
             <Badge variant="neon" className="hidden sm:inline-flex">
               <Wallet className="w-3 h-3 mr-1" />
               {(user?.balance || 0).toFixed(2)} USDT
